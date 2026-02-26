@@ -1,25 +1,99 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Dashboard project with dark mode contrast fix in progress. Text, labels, and section headings were not visible when dark mode was enabled.",
+  "summary": "App with login authentication, role-based access control, sidebar navigation, and user management. Admins have full access including a Settings menu to manage users (create/edit/delete with name, password, role). Regular users have limited access with no Settings visibility.",
   "architectural_notes": [
-    "Dark mode must ensure sufficient contrast for all text, labels, and section headings on widgets and sections."
+    "Authentication is internal credential check (username + password), not a third-party identity service",
+    "Users stored in app backend with name, password, and role fields"
   ],
   "known_issues": [],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
-      "id": "feature-fix-dark-mode-contrast-so-that-all-text-labels-values-and-headings-inside-kpi-cards-chart-widgets-and-dashboard-sections-are-clearly-visible-when-dark-mode-is-enabled-ensure-css-custom-properties-and-tailwind-utility-classes-correctly-resolve-to-high-contrast-foreground-colors-against-dark-backgrounds-across-all-widget-and-section-components",
-      "title": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled. Ensure CSS custom properties and Tailwind utility classes correctly resolve to high-contrast foreground colors against dark backgrounds across all widget and section components.",
+      "id": "feature-replace-the-internet-identity-authentication-gate-in-the-frontend-with-a-username-password-login-screen-the-login-screen-should-show-the-app-logo-name-a-username-field-a-password-field-and-a-sign-in-button-on-successful-authentication-store-the-logged-in-user-id-username-role-in-react-context-state-accessible-app-wide",
+      "title": "Replace the Internet Identity authentication gate in the frontend with a username/password login screen. The login screen should show the app logo/name, a username field, a password field, and a Sign In button. On successful authentication, store the logged-in user (id, username, role) in React context/state accessible app-wide.",
       "reqIds": [
-        "REQ-1"
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-settings-page-accessible-only-to-admin-users-add-a-settings-navigation-link-in-the-sidebar-that-is-only-rendered-when-the-logged-in-user-has-the-admin-role-regular-users-should-not-see-or-be-able-to-navigate-to-the-settings-page",
+      "title": "Add a Settings page accessible only to admin users. Add a 'Settings' navigation link in the Sidebar that is only rendered when the logged-in user has the Admin role. Regular users should not see or be able to navigate to the Settings page.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-build-the-settings-page-with-a-user-management-section-display-a-table-of-all-users-showing-their-username-and-role-provide-buttons-to-1-create-a-new-user-opens-a-dialog-with-username-password-and-role-fields-2-edit-an-existing-user-opens-a-pre-filled-dialog-for-username-password-and-role-3-delete-a-user-with-a-confirmation-prompt-prevent-deletion-of-the-currently-logged-in-admin-user",
+      "title": "Build the Settings page with a User Management section. Display a table of all users showing their username and role. Provide buttons to: (1) Create a new user (opens a dialog with username, password, and role fields), (2) Edit an existing user (opens a pre-filled dialog for username, password, and role), (3) Delete a user (with a confirmation prompt). Prevent deletion of the currently logged-in admin user.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-enforce-role-based-access-control-across-the-app-regular-users-role-user-should-not-see-the-settings-sidebar-link-cannot-access-admin-only-pages-and-all-admin-only-action-buttons-add-edit-delete-on-assetspage-partsinventorypage-repairticketspage-etc-remain-gated-base-access-checks-on-the-locally-stored-logged-in-user-role-instead-of-the-previous-internet-identity-based-role-check",
+      "title": "Enforce role-based access control across the app. Regular users (role: User) should not see the Settings sidebar link, cannot access admin-only pages, and all admin-only action buttons (add/edit/delete) on AssetsPage, PartsInventoryPage, RepairTicketsPage, etc. remain gated. Base access checks on the locally stored logged-in user role instead of the previous Internet Identity-based role check.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-header-component-to-display-the-logged-in-user-s-username-and-role-and-replace-the-internet-identity-logout-button-with-a-logout-action-that-clears-the-local-session-and-returns-the-user-to-the-login-screen",
+      "title": "Update the Header component to display the logged-in user's username and role, and replace the Internet Identity logout button with a logout action that clears the local session and returns the user to the login screen.",
+      "reqIds": [
+        "REQ-7"
       ],
       "version": 1
     }
   ],
-  "new_feature_requests": [],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Login screen with username and password authentication",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Settings menu in sidebar accessible only to admins",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "User management inside Settings: create, view, edit, delete users with name, password, and role (admin or regular user)",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Role-based access control: admins get full app access, regular users have limited access with no Settings visibility",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Add an AppUser data model to the backend with fields: id (Nat), username (Text), passwordHash (Text), and role (variant { Admin; User }). Store users in a stable HashMap. Seed one default admin account (username: 'admin', password: 'admin123') on first deploy if no users exist.",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Expose backend functions for user management: login(username, password) returning a session token or error; getUsers() returning all users (admin only); createUser(username, password, role) (admin only); updateUser(id, username, password, role) (admin only); deleteUser(id) (admin only).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
   "gameProjectType": "none",
-  "projectName": "Fix dark mode text contrast on widgets and sections",
+  "projectName": "Asset Repair Tracker",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

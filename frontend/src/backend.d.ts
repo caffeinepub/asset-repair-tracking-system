@@ -40,6 +40,9 @@ export interface ModelCount {
     m400: bigint;
     carbon8: bigint;
 }
+export interface Config {
+    discriminator: string;
+}
 export interface StageCount {
     deployed: bigint;
     closed: bigint;
@@ -58,6 +61,11 @@ export interface AuditEntry {
     timestamp: bigint;
     entityType: string;
     changeDescription: string;
+}
+export interface ManagedUserPublic {
+    id: bigint;
+    username: string;
+    role: ManagedUserRole;
 }
 export interface AppUser {
     userId: string;
@@ -79,6 +87,19 @@ export interface Asset {
     serialNumber: string;
     condition: string;
 }
+export interface BatchImportResult {
+    errors: Array<string>;
+    importedCount: bigint;
+    existingCount: bigint;
+    errorCount: bigint;
+}
+export type LoginResult = {
+    __kind__: "ok";
+    ok: string;
+} | {
+    __kind__: "err";
+    err: string;
+};
 export interface PartReplaced {
     qty: bigint;
     partNumber: string;
@@ -121,6 +142,10 @@ export enum AssetStatus {
     inProgramming = "inProgramming",
     inField = "inField"
 }
+export enum ManagedUserRole {
+    User = "User",
+    Admin = "Admin"
+}
 export enum RepairOutcome {
     fixed = "fixed",
     replaced = "replaced",
@@ -139,14 +164,17 @@ export interface backendInterface {
     addUser(user: AppUser): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createRepairTicket(ticket: RepairTicket): Promise<void>;
+    createUser(username: string, password: string, role: ManagedUserRole): Promise<bigint>;
     deleteAsset(serialNumber: string): Promise<void>;
     deleteClient(clientId: string): Promise<Result>;
+    deleteUser(id: bigint): Promise<void>;
     filterAssets(model: string | null, client: string | null, status: AssetStatus | null): Promise<Array<Asset>>;
     filterRepairs(model: string | null, client: string | null, startDate: bigint | null, endDate: bigint | null, faultKeyword: string | null): Promise<Array<RepairTicket>>;
     getAsset(serialNumber: string): Promise<Asset>;
     getAuditTrail(entityId: string | null, startDate: bigint | null, endDate: bigint | null): Promise<Array<AuditEntry>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getConfig(): Promise<Config>;
     getCurrentUserRole(userId: string): Promise<AppUserRole | null>;
     getDeviceModelCounts(): Promise<ModelCount>;
     getLowStockParts(): Promise<Array<Part>>;
@@ -162,17 +190,21 @@ export interface backendInterface {
     getTechnicianWorkload(technicianName: string, startDate: bigint, endDate: bigint): Promise<[bigint, Array<RepairTicket>]>;
     getUser(userId: string): Promise<AppUser>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getUsers(): Promise<Array<ManagedUserPublic>>;
+    importAssetBatch(serialNumbers: Array<string>): Promise<BatchImportResult>;
     isCallerAdmin(): Promise<boolean>;
     listAllRepairs(): Promise<Array<RepairTicket>>;
     listAssets(): Promise<Array<Asset>>;
     listClients(): Promise<Array<Client>>;
     listParts(): Promise<Array<Part>>;
     listUsers(): Promise<Array<AppUser>>;
+    login(username: string, password: string): Promise<LoginResult>;
     renameClient(clientId: string, newName: string): Promise<Result>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchBySerial(queryText: string): Promise<Array<Asset>>;
     updateAsset(serialNumber: string, updatedAsset: Asset): Promise<void>;
     updatePartStock(partNumber: string, delta: bigint): Promise<void>;
     updateRepairTicket(ticketId: string, updatedTicket: RepairTicket): Promise<void>;
+    updateUser(id: bigint, username: string, password: string, role: ManagedUserRole): Promise<void>;
     updateUserRole(userId: string, newRole: AppUserRole): Promise<void>;
 }

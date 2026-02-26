@@ -1,109 +1,92 @@
-import React from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useTopFailingModels } from '../hooks/useQueries';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTopFailingModels } from '@/hooks/useQueries';
+import { useTheme } from '../hooks/useTheme';
 
-const MODEL_COLORS = [
-  '#f97316', // orange
-  '#ef4444', // red
-  '#f59e0b', // amber
-  '#8b5cf6', // purple
-  '#06b6d4', // cyan
-];
+const MODEL_LABELS: Record<string, string> = {
+  vx680: 'VX680',
+  vx820: 'VX820',
+  m400: 'M400',
+  carbon10: 'Carbon 10',
+  carbon8: 'Carbon 8',
+};
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}
+const MODEL_KEYS = ['vx680', 'vx820', 'm400', 'carbon10', 'carbon8'] as const;
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-popover border border-border rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-medium text-popover-foreground">{label}</p>
-        <p className="text-sm text-muted-foreground">
-          Repairs: <span className="font-semibold text-popover-foreground">{payload[0].value}</span>
-        </p>
-      </div>
-    );
-  }
-  return null;
-}
+const LIME_GREEN = '#84cc16';
 
 export default function TopFailingModelsChart() {
-  const { data: modelCounts, isLoading } = useTopFailingModels();
+  const { data, isLoading } = useTopFailingModels();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
-  if (isLoading) {
-    return (
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-card-foreground text-base font-semibold">Top Failing Models</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+  const tickColor = isDark ? LIME_GREEN : 'var(--muted-foreground)';
+  const gridColor = isDark ? '#84cc1640' : 'var(--border)';
 
-  const chartData = modelCounts
-    ? [
-        { model: 'VX680', count: Number(modelCounts.vx680) },
-        { model: 'VX820', count: Number(modelCounts.vx820) },
-        { model: 'M400', count: Number(modelCounts.m400) },
-        { model: 'Carbon 10', count: Number(modelCounts.carbon10) },
-        { model: 'Carbon 8', count: Number(modelCounts.carbon8) },
-      ].sort((a, b) => b.count - a.count)
-    : [];
+  const chartData = MODEL_KEYS
+    .map((key) => ({
+      model: MODEL_LABELS[key],
+      count: data ? Number(data[key]) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="text-card-foreground text-base font-semibold">Top Failing Models</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-            <XAxis
-              type="number"
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
-              axisLine={false}
-              tickLine={false}
-              allowDecimals={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="model"
-              tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
-              axisLine={false}
-              tickLine={false}
-              width={70}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.5 }} />
-            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-              {chartData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={MODEL_COLORS[index % MODEL_COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground">Top Failing Models</h3>
+      </div>
+      <div className="p-4">
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-[220px] w-full rounded" />
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              layout="vertical"
+              data={chartData}
+              margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 11, fill: tickColor }}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="model"
+                tick={{ fontSize: 11, fill: tickColor }}
+                tickLine={false}
+                axisLine={false}
+                width={72}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--card)',
+                  border: isDark ? `1px solid ${LIME_GREEN}40` : '1px solid var(--border)',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: isDark ? LIME_GREEN : 'var(--foreground)',
+                }}
+                cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                formatter={(value: number) => [value, 'Repairs']}
+              />
+              <Bar
+                dataKey="count"
+                radius={[0, 3, 3, 0]}
+                maxBarSize={36}
+              >
+                {chartData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill="#f59e0b" />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
   );
 }

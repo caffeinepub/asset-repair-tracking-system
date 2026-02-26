@@ -2,22 +2,32 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-fix-dark-mode-contrast-so-that-all-text-labels-values-and-headings-inside-kpi-cards-chart-widgets-and-dashboard-sections-are-clearly-visible-when-dark-mode-is-enabled-ensure-css-custom-properties-and-tailwind-utility-classes-correctly-resolve-to-high-contrast-foreground-colors-against-dark-backgrounds-across-all-widget-and-section-components",
-      "featureTitle": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled. Ensure CSS custom properties and Tailwind utility classes correctly resolve to high-contrast foreground colors against dark backgrounds across all widget and section components.",
+      "featureId": "feature-replace-the-internet-identity-authentication-gate-in-the-frontend-with-a-username-password-login-screen-the-login-screen-should-show-the-app-logo-name-a-username-field-a-password-field-and-a-sign-in-button-on-successful-authentication-store-the-logged-in-user-id-username-role-in-react-context-state-accessible-app-wide",
+      "featureTitle": "Replace the Internet Identity authentication gate in the frontend with a username/password login screen. The login screen should show the app logo/name, a username field, a password field, and a Sign In button. On successful authentication, store the logged-in user (id, username, role) in React context/state accessible app-wide.",
       "files": [
-        "frontend/src/components/Header.tsx",
-        "frontend/src/components/KPICard.tsx",
-        "frontend/src/components/RepairsByStageChart.tsx",
+        "frontend/src/App.tsx",
+        "frontend/src/components/LoginScreen.tsx",
+        "frontend/src/contexts/AuthContext.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-settings-page-accessible-only-to-admin-users-add-a-settings-navigation-link-in-the-sidebar-that-is-only-rendered-when-the-logged-in-user-has-the-admin-role-regular-users-should-not-see-or-be-able-to-navigate-to-the-settings-page",
+      "featureTitle": "Add a Settings page accessible only to admin users. Add a 'Settings' navigation link in the Sidebar that is only rendered when the logged-in user has the Admin role. Regular users should not see or be able to navigate to the Settings page.",
+      "files": [
+        "frontend/src/App.tsx",
         "frontend/src/components/Sidebar.tsx",
-        "frontend/src/components/StatusBadge.tsx",
-        "frontend/src/components/TopFailingModelsChart.tsx",
-        "frontend/src/index.css",
-        "frontend/src/pages/AssetsPage.tsx",
-        "frontend/src/pages/AuditLogPage.tsx",
-        "frontend/src/pages/DashboardPage.tsx",
-        "frontend/src/pages/PartsInventoryPage.tsx",
-        "frontend/src/pages/RepairTicketsPage.tsx",
-        "frontend/src/pages/ReportsPage.tsx",
         "frontend/src/pages/SettingsPage.tsx"
       ],
       "components": [
@@ -29,7 +39,69 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-build-the-settings-page-with-a-user-management-section-display-a-table-of-all-users-showing-their-username-and-role-provide-buttons-to-1-create-a-new-user-opens-a-dialog-with-username-password-and-role-fields-2-edit-an-existing-user-opens-a-pre-filled-dialog-for-username-password-and-role-3-delete-a-user-with-a-confirmation-prompt-prevent-deletion-of-the-currently-logged-in-admin-user",
+      "featureTitle": "Build the Settings page with a User Management section. Display a table of all users showing their username and role. Provide buttons to: (1) Create a new user (opens a dialog with username, password, and role fields), (2) Edit an existing user (opens a pre-filled dialog for username, password, and role), (3) Delete a user (with a confirmation prompt). Prevent deletion of the currently logged-in admin user.",
+      "files": [
+        "frontend/src/components/CreateUserDialog.tsx",
+        "frontend/src/components/EditUserDialog.tsx",
+        "frontend/src/hooks/useQueries.ts",
+        "frontend/src/pages/SettingsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-enforce-role-based-access-control-across-the-app-regular-users-role-user-should-not-see-the-settings-sidebar-link-cannot-access-admin-only-pages-and-all-admin-only-action-buttons-add-edit-delete-on-assetspage-partsinventorypage-repairticketspage-etc-remain-gated-base-access-checks-on-the-locally-stored-logged-in-user-role-instead-of-the-previous-internet-identity-based-role-check",
+      "featureTitle": "Enforce role-based access control across the app. Regular users (role: User) should not see the Settings sidebar link, cannot access admin-only pages, and all admin-only action buttons (add/edit/delete) on AssetsPage, PartsInventoryPage, RepairTicketsPage, etc. remain gated. Base access checks on the locally stored logged-in user role instead of the previous Internet Identity-based role check.",
+      "files": [
+        "frontend/src/pages/AssetsPage.tsx",
+        "frontend/src/pages/PartsInventoryPage.tsx",
+        "frontend/src/pages/RepairTicketsPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-update-the-header-component-to-display-the-logged-in-user-s-username-and-role-and-replace-the-internet-identity-logout-button-with-a-logout-action-that-clears-the-local-session-and-returns-the-user-to-the-login-screen",
+      "featureTitle": "Update the Header component to display the logged-in user's username and role, and replace the Internet Identity logout button with a logout action that clears the local session and returns the user to the login screen.",
+      "files": [
+        "frontend/src/components/Header.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
       ],
       "confidence": "high"
     }

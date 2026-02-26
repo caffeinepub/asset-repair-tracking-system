@@ -1,21 +1,20 @@
-import Int "mo:core/Int";
 import Text "mo:core/Text";
 import Time "mo:core/Time";
 import List "mo:core/List";
-import Map "mo:core/Map";
 import Array "mo:core/Array";
 import Order "mo:core/Order";
-import Iter "mo:core/Iter";
 import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
+import Int "mo:core/Int";
+import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
-
+import Map "mo:core/Map";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-
+import Migration "migration";
 
 // Enables explicit migration
-
+(with migration = Migration.run)
 actor {
   public type AssetStatus = {
     #inField;
@@ -104,6 +103,31 @@ actor {
     createTime : Int;
   };
 
+  // ── User management types (from implementation plan) ──────────────────────
+
+  public type ManagedUserRole = {
+    #Admin;
+    #User;
+  };
+
+  public type ManagedUser = {
+    id : Nat;
+    username : Text;
+    passwordHash : Text;
+    role : ManagedUserRole;
+  };
+
+  public type ManagedUserPublic = {
+    id : Nat;
+    username : Text;
+    role : ManagedUserRole;
+  };
+
+  public type LoginResult = {
+    #ok : Text;
+    #err : Text;
+  };
+
   type Result = {
     #ok;
     #err : ResultError;
@@ -118,6 +142,16 @@ actor {
     #invalidName : Text;
   };
 
+  public type Config = { discriminator : Text };
+
+  stable let config : Config = {
+    discriminator = "backend-with-configs";
+  };
+
+  public query ({ caller }) func getConfig() : async Config {
+    config;
+  };
+
   // State
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -129,6 +163,39 @@ actor {
   let appUsers = Map.empty<Text, AppUser>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let clients = Map.empty<Text, Client>();
+
+  // ── Managed users (implementation plan) ──────────────────────────────────
+  let managedUsers = Map.empty<Nat, ManagedUser>();
+  stable var nextUserId : Nat = 1;
+  stable var managedUsersSeeded : Bool = false;
+
+  // Simple hash function for passwords (deterministic)
+  func hashPassword(password : Text) : Text {
+    // Simple deterministic hash using character codes
+    var hash : Nat = 5381;
+    for (c in password.chars()) {
+      let code = Nat32.toNat(Char.toNat32(c));
+      hash := ((hash * 33) + code) % 4294967296;
+    };
+    "hash_" # hash.toText();
+  };
+
+  // Seed default admin on first deploy
+  func seedDefaultAdmin() {
+    if (not managedUsersSeeded) {
+      let adminUser : ManagedUser = {
+        id = 0;
+        username = "admin";
+        passwordHash = hashPassword("admin123");
+        role = #Admin;
+      };
+      managedUsers.add(0, adminUser);
+      managedUsersSeeded := true;
+    };
+  };
+
+  // Initialize seed
+  seedDefaultAdmin();
 
   func assetStatusToText(status : AssetStatus) : Text {
     switch (status) {
@@ -415,6 +482,61 @@ actor {
     };
     assets.remove(serialNumber);
     addAuditEntry("Asset", serialNumber, caller.toText(), "Asset deleted");
+  };
+
+  // ── Batch Asset Import ────────────────────────────────────────────
+
+  public type BatchImportResult = {
+    importedCount : Nat;
+    existingCount : Nat;
+    errorCount : Nat;
+    errors : [Text];
+  };
+
+  public shared ({ caller }) func importAssetBatch(serialNumbers : [Text]) : async BatchImportResult {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can import assets");
+    };
+
+    var importedCount = 0;
+    var existingCount = 0;
+    var errorCount = 0;
+    let errors = List.empty<Text>();
+
+    for (serial in serialNumbers.values()) {
+      let trimmedSerial = serial.trim(#char ' ');
+
+      if (trimmedSerial.size() == 0) {
+        errors.add("empty_serial_number");
+        errorCount += 1;
+      } else {
+        switch (assets.get(trimmedSerial)) {
+          case (?_existing) {
+            existingCount += 1;
+          };
+          case (null) {
+            let newAsset = {
+              serialNumber = trimmedSerial;
+              model = "Unknown";
+              client = "Unknown";
+              status = #inField;
+              condition = "Not specified";
+              dateFirstRegistered = Time.now();
+            };
+            assets.add(trimmedSerial, newAsset);
+            importedCount += 1;
+            addAuditEntry("Asset", trimmedSerial, caller.toText(), "Asset batch imported with default values");
+          };
+        };
+      };
+    };
+
+    {
+      importedCount;
+      existingCount;
+      errorCount;
+      errors = errors.toArray();
+    };
   };
 
   // ── Repair Ticket Functions ───────────────────────────────────────────────
@@ -945,7 +1067,7 @@ actor {
     result.toArray();
   };
 
-  // ── App User Management ───────────────────────────────────────────────────
+  // ── App User Management (legacy) ──────────────────────────────────────────
 
   public shared ({ caller }) func addUser(user : AppUser) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
@@ -997,6 +1119,113 @@ actor {
     switch (appUsers.get(userId)) {
       case (?user) { ?user.role };
       case (null) { null };
+    };
+  };
+
+  // ── Managed User Management (implementation plan) ─────────────────────────
+
+  // login: No auth check needed - this is how users authenticate.
+  // Returns a session token (username:role) on success, or an error.
+  public shared func login(username : Text, password : Text) : async LoginResult {
+    let hashedInput = hashPassword(password);
+    for ((_, user) in managedUsers.entries()) {
+      if (user.username == username and user.passwordHash == hashedInput) {
+        let roleText = switch (user.role) {
+          case (#Admin) { "Admin" };
+          case (#User) { "User" };
+        };
+        return #ok("session_" # username # "_" # roleText # "_" # user.id.toText());
+      };
+    };
+    #err("Invalid username or password");
+  };
+
+  // getUsers: Admin only
+  public query ({ caller }) func getUsers() : async [ManagedUserPublic] {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can view all users");
+    };
+    let result = List.empty<ManagedUserPublic>();
+    for ((_, user) in managedUsers.entries()) {
+      result.add({
+        id = user.id;
+        username = user.username;
+        role = user.role;
+      });
+    };
+    result.toArray();
+  };
+
+  // createUser: Admin only
+  public shared ({ caller }) func createUser(username : Text, password : Text, role : ManagedUserRole) : async Nat {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can create users");
+    };
+    // Check for duplicate username
+    for ((_, existingUser) in managedUsers.entries()) {
+      if (existingUser.username == username) {
+        Runtime.trap("Username already exists");
+      };
+    };
+    let newId = nextUserId;
+    nextUserId += 1;
+    let newUser : ManagedUser = {
+      id = newId;
+      username = username;
+      passwordHash = hashPassword(password);
+      role = role;
+    };
+    managedUsers.add(newId, newUser);
+    newId;
+  };
+
+  // updateUser: Admin only
+  public shared ({ caller }) func updateUser(id : Nat, username : Text, password : Text, role : ManagedUserRole) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can update users");
+    };
+    switch (managedUsers.get(id)) {
+      case (null) {
+        Runtime.trap("User not found");
+      };
+      case (?existingUser) {
+        // Check for duplicate username (excluding current user)
+        for ((_, u) in managedUsers.entries()) {
+          if (u.username == username and u.id != id) {
+            Runtime.trap("Username already taken by another user");
+          };
+        };
+        let updatedUser : ManagedUser = {
+          id = existingUser.id;
+          username = username;
+          passwordHash = if (password.size() > 0) {
+            hashPassword(password);
+          } else {
+            existingUser.passwordHash;
+          };
+          role = role;
+        };
+        managedUsers.add(id, updatedUser);
+      };
+    };
+  };
+
+  // deleteUser: Admin only
+  public shared ({ caller }) func deleteUser(id : Nat) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can delete users");
+    };
+    // Prevent deleting the default admin (id=0)
+    if (id == 0) {
+      Runtime.trap("Cannot delete the default admin account");
+    };
+    switch (managedUsers.get(id)) {
+      case (null) {
+        Runtime.trap("User not found");
+      };
+      case (?_) {
+        managedUsers.remove(id);
+      };
     };
   };
 
@@ -1098,4 +1327,3 @@ actor {
     { vx680; vx820; m400; carbon10; carbon8 };
   };
 };
-

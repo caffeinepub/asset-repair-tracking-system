@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
-import { Plus, Shield } from 'lucide-react';
+import { useNavigate } from '@tanstack/react-router';
+import { useAuth } from '../contexts/AuthContext';
+import { ManagedUserRole, ManagedUserPublic } from '../backend';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useActor } from '../hooks/useActor';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -11,326 +20,372 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Pencil, Trash2, UserPlus, Shield, User, AlertCircle, Loader2 } from 'lucide-react';
+import CreateUserDialog from '../components/CreateUserDialog';
+import EditUserDialog from '../components/EditUserDialog';
+import { toast } from 'sonner';
+
+// Client management imports
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  useListUsers,
-  useAddUser,
-  useUpdateUserRole,
-  useGetClients,
-  useAddClient,
-  useRenameClient,
-  useDeleteClient,
-} from '@/hooks/useQueries';
-import { AppUser, AppUserRole, Result } from '@/backend';
-
-function AddUserDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const addUser = useAddUser();
-  const [form, setForm] = useState({ userId: '', name: '', role: AppUserRole.technician });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await addUser.mutateAsync(form);
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border text-card-foreground">
-        <DialogHeader>
-          <DialogTitle className="text-card-foreground">Add User</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-foreground">User ID</Label>
-            <Input
-              value={form.userId}
-              onChange={(e) => setForm({ ...form, userId: e.target.value })}
-              required
-              className="bg-background text-foreground border-input"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-foreground">Name</Label>
-            <Input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-              className="bg-background text-foreground border-input"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-foreground">Role</Label>
-            <Select
-              value={form.role}
-              onValueChange={(v) => setForm({ ...form, role: v as AppUserRole })}
-            >
-              <SelectTrigger className="bg-background text-foreground border-input">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-popover text-popover-foreground border-border">
-                <SelectItem value={AppUserRole.technician}>Technician</SelectItem>
-                <SelectItem value={AppUserRole.supervisor}>Supervisor</SelectItem>
-                <SelectItem value={AppUserRole.admin}>Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} className="border-border text-foreground">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={addUser.isPending}>
-              {addUser.isPending ? 'Adding...' : 'Add User'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function AddClientDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const addClient = useAddClient();
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    const result: Result = await addClient.mutateAsync(name);
-    if (result.__kind__ !== 'ok') {
-      setError('Failed to add client. Name may already be taken.');
-      return;
-    }
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border text-card-foreground">
-        <DialogHeader>
-          <DialogTitle className="text-card-foreground">Add Client</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-foreground">Client Name</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="bg-background text-foreground border-input"
-            />
-            {error && <p className="text-xs text-destructive">{error}</p>}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} className="border-border text-foreground">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={addClient.isPending}>
-              {addClient.isPending ? 'Adding...' : 'Add Client'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+import { Label } from '@/components/ui/label';
 
 export default function SettingsPage() {
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [showAddClient, setShowAddClient] = useState(false);
+  const { user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const { actor, isFetching: actorFetching } = useActor();
+  const queryClient = useQueryClient();
 
-  const { data: users, isLoading: usersLoading } = useListUsers();
-  const { data: clients, isLoading: clientsLoading } = useGetClients();
-  const updateRole = useUpdateUserRole();
-  const deleteClient = useDeleteClient();
-  const renameClient = useRenameClient();
+  // Redirect non-admins
+  React.useEffect(() => {
+    if (!isAdmin) {
+      navigate({ to: '/' });
+    }
+  }, [isAdmin, navigate]);
 
-  const [renamingClientId, setRenamingClientId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2 text-destructive">
+          <AlertCircle className="w-5 h-5" />
+          <span>Access denied. Admins only.</span>
+        </div>
+      </div>
+    );
+  }
 
-  const handleRenameSubmit = async (clientId: string) => {
-    if (!renameValue.trim()) return;
-    await renameClient.mutateAsync({ clientId, newName: renameValue.trim() });
-    setRenamingClientId(null);
-    setRenameValue('');
+  return <SettingsContent currentUserId={user?.id ?? -1} actor={actor} actorFetching={actorFetching} queryClient={queryClient} />;
+}
+
+interface SettingsContentProps {
+  currentUserId: number;
+  actor: any;
+  actorFetching: boolean;
+  queryClient: any;
+}
+
+function SettingsContent({ currentUserId, actor, actorFetching, queryClient }: SettingsContentProps) {
+  // ── User Management State ──────────────────────────────────────────────────
+  const [createUserOpen, setCreateUserOpen] = useState(false);
+  const [editUserOpen, setEditUserOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<ManagedUserPublic | null>(null);
+  const [deleteUserId, setDeleteUserId] = useState<bigint | null>(null);
+
+  // ── Client Management State ────────────────────────────────────────────────
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [editClientOpen, setEditClientOpen] = useState(false);
+  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<{ id: string; name: string } | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [clientError, setClientError] = useState('');
+
+  // ── Queries ────────────────────────────────────────────────────────────────
+  const { data: users = [], isLoading: usersLoading } = useQuery<ManagedUserPublic[]>({
+    queryKey: ['managedUsers'],
+    queryFn: async () => {
+      if (!actor) return [];
+      const result = await actor.getUsers();
+      return result.map((u: any) => ({
+        id: u.id,
+        username: u.username,
+        role: u.role.__kind__ === 'Admin' ? ManagedUserRole.Admin : ManagedUserRole.User,
+      }));
+    },
+    enabled: !!actor && !actorFetching,
+  });
+
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listClients();
+    },
+    enabled: !!actor && !actorFetching,
+  });
+
+  // ── User Mutations ─────────────────────────────────────────────────────────
+  const createUserMutation = useMutation({
+    mutationFn: async ({ username, password, role }: { username: string; password: string; role: ManagedUserRole }) => {
+      if (!actor) throw new Error('Actor not available');
+      const backendRole = role === ManagedUserRole.Admin ? { Admin: null } : { User: null };
+      await actor.createUser(username, password, backendRole);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['managedUsers'] }),
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: async ({ id, username, password, role }: { id: bigint; username: string; password: string; role: ManagedUserRole }) => {
+      if (!actor) throw new Error('Actor not available');
+      const backendRole = role === ManagedUserRole.Admin ? { Admin: null } : { User: null };
+      await actor.updateUser(id, username, password, backendRole);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['managedUsers'] }),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.deleteUser(id);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['managedUsers'] }),
+  });
+
+  // ── Client Mutations ───────────────────────────────────────────────────────
+  const addClientMutation = useMutation({
+    mutationFn: async (name: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.addClient(name);
+      if (result.__kind__ === 'err') throw new Error(result.err?.nameTaken || result.err?.emptyName !== undefined ? 'Name is empty or already taken' : 'Failed to add client');
+      return result;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+
+  const renameClientMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.renameClient(id, name);
+      if (result.__kind__ === 'err') throw new Error('Failed to rename client');
+      return result;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!actor) throw new Error('Actor not available');
+      const result = await actor.deleteClient(id);
+      if (result.__kind__ === 'err') throw new Error('Failed to delete client');
+      return result;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleCreateUser = async (username: string, password: string, role: ManagedUserRole) => {
+    await createUserMutation.mutateAsync({ username, password, role });
+  };
+
+  const handleUpdateUser = async (id: bigint, username: string, password: string, role: ManagedUserRole) => {
+    await updateUserMutation.mutateAsync({ id, username, password, role });
+  };
+
+  const handleDeleteUser = async () => {
+    if (deleteUserId === null) return;
+    try {
+      await deleteUserMutation.mutateAsync(deleteUserId);
+      toast.success('User deleted successfully.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete user.');
+    } finally {
+      setDeleteUserId(null);
+    }
+  };
+
+  const handleAddClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName.trim()) { setClientError('Client name is required.'); return; }
+    setClientError('');
+    try {
+      await addClientMutation.mutateAsync(clientName.trim());
+      toast.success('Client added successfully.');
+      setClientName('');
+      setAddClientOpen(false);
+    } catch (err: any) {
+      setClientError(err.message || 'Failed to add client.');
+    }
+  };
+
+  const handleRenameClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClient || !clientName.trim()) { setClientError('Client name is required.'); return; }
+    setClientError('');
+    try {
+      await renameClientMutation.mutateAsync({ id: selectedClient.id, name: clientName.trim() });
+      toast.success('Client renamed successfully.');
+      setClientName('');
+      setEditClientOpen(false);
+      setSelectedClient(null);
+    } catch (err: any) {
+      setClientError(err.message || 'Failed to rename client.');
+    }
+  };
+
+  const handleDeleteClient = async () => {
+    if (!deleteClientId) return;
+    try {
+      await deleteClientMutation.mutateAsync(deleteClientId);
+      toast.success('Client deleted successfully.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete client.');
+    } finally {
+      setDeleteClientId(null);
+    }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-8 max-w-5xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage users, roles, and client registry</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage users and system configuration</p>
       </div>
 
-      {/* Users Section */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base font-semibold text-card-foreground">User Management</CardTitle>
-            </div>
-            <Button size="sm" onClick={() => setShowAddUser(true)} className="gap-1.5 text-xs">
-              <Plus className="h-3.5 w-3.5" />
-              Add User
-            </Button>
+      {/* ── User Management ─────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              User Management
+            </CardTitle>
+            <CardDescription>Create and manage user accounts and roles</CardDescription>
           </div>
+          <Button size="sm" onClick={() => setCreateUserOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Add User
+          </Button>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           {usersLoading ? (
-            <div className="p-4 space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : !users || users.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center">No users configured.</p>
+          ) : users.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No users found.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-medium">User ID</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Name</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Role</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user: AppUser) => (
-                  <TableRow key={user.userId} className="border-border hover:bg-muted/50">
-                    <TableCell className="font-mono text-xs text-foreground">{user.userId}</TableCell>
-                    <TableCell className="text-sm text-foreground">{user.name}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={String(user.role)}
-                        onValueChange={(v) =>
-                          updateRole.mutate({ userId: user.userId, role: v as AppUserRole })
-                        }
-                      >
-                        <SelectTrigger className="w-32 h-7 text-xs bg-background text-foreground border-input">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover text-popover-foreground border-border">
-                          <SelectItem value={AppUserRole.technician}>Technician</SelectItem>
-                          <SelectItem value={AppUserRole.supervisor}>Supervisor</SelectItem>
-                          <SelectItem value={AppUserRole.admin}>Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">—</span>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {users.map((u) => {
+                  const isSelf = Number(u.id) === currentUserId;
+                  return (
+                    <TableRow key={String(u.id)}>
+                      <TableCell className="font-medium flex items-center gap-2">
+                        {u.role === ManagedUserRole.Admin ? (
+                          <Shield className="w-3.5 h-3.5 text-primary" />
+                        ) : (
+                          <User className="w-3.5 h-3.5 text-muted-foreground" />
+                        )}
+                        {u.username}
+                        {isSelf && (
+                          <Badge variant="outline" className="text-xs ml-1">You</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={u.role === ManagedUserRole.Admin ? 'default' : 'secondary'}>
+                          {u.role === ManagedUserRole.Admin ? 'Admin' : 'User'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-8 h-8"
+                            onClick={() => {
+                              setSelectedUser(u);
+                              setEditUserOpen(true);
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-8 h-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteUserId(u.id)}
+                            disabled={isSelf}
+                            title={isSelf ? "Cannot delete your own account" : "Delete user"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Clients Section */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold text-card-foreground">Client Registry</CardTitle>
-            <Button size="sm" onClick={() => setShowAddClient(true)} className="gap-1.5 text-xs">
-              <Plus className="h-3.5 w-3.5" />
-              Add Client
-            </Button>
+      {/* ── Client Registry ──────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Client Registry</CardTitle>
+            <CardDescription>Manage client organizations</CardDescription>
           </div>
+          <Button size="sm" onClick={() => { setClientName(''); setClientError(''); setAddClientOpen(true); }}>
+            Add Client
+          </Button>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           {clientsLoading ? (
-            <div className="p-4 space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : !clients || clients.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center">No clients registered.</p>
+          ) : clients.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-8">No clients found.</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-medium">Client ID</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Name</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Created</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.map((client) => (
-                  <TableRow key={client.id} className="border-border hover:bg-muted/50">
-                    <TableCell className="font-mono text-xs text-foreground">{client.id}</TableCell>
-                    <TableCell className="text-sm text-foreground">
-                      {renamingClientId === client.id ? (
-                        <div className="flex items-center gap-2">
-                          <Input
-                            value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
-                            className="h-7 text-xs w-40 bg-background text-foreground border-input"
-                            autoFocus
-                          />
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => handleRenameSubmit(client.id)}
-                            disabled={renameClient.isPending}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 text-xs text-muted-foreground"
-                            onClick={() => { setRenamingClientId(null); setRenameValue(''); }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        client.name
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(Number(client.createTime) / 1_000_000).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                {clients.map((c: any) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="text-xs text-foreground hover:bg-accent h-7"
+                          size="icon"
+                          className="w-8 h-8"
                           onClick={() => {
-                            setRenamingClientId(client.id);
-                            setRenameValue(client.name);
+                            setSelectedClient(c);
+                            setClientName(c.name);
+                            setClientError('');
+                            setEditClientOpen(true);
                           }}
                         >
-                          Rename
+                          <Pencil className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
-                          size="sm"
-                          className="text-xs text-destructive hover:text-destructive hover:bg-destructive/10 h-7"
-                          onClick={() => deleteClient.mutate(client.id)}
-                          disabled={deleteClient.isPending}
+                          size="icon"
+                          className="w-8 h-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteClientId(c.id)}
                         >
-                          Delete
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </TableCell>
@@ -342,8 +397,117 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {showAddUser && <AddUserDialog open={showAddUser} onClose={() => setShowAddUser(false)} />}
-      {showAddClient && <AddClientDialog open={showAddClient} onClose={() => setShowAddClient(false)} />}
+      {/* ── Dialogs ──────────────────────────────────────────────────────── */}
+      <CreateUserDialog
+        open={createUserOpen}
+        onOpenChange={setCreateUserOpen}
+        onCreateUser={handleCreateUser}
+      />
+
+      <EditUserDialog
+        open={editUserOpen}
+        onOpenChange={setEditUserOpen}
+        user={selectedUser}
+        onUpdateUser={handleUpdateUser}
+      />
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={deleteUserId !== null} onOpenChange={(open) => !open && setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add Client Dialog */}
+      <Dialog open={addClientOpen} onOpenChange={(open) => { if (!open) { setClientName(''); setClientError(''); } setAddClientOpen(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Client</DialogTitle>
+            <DialogDescription>Add a new client organization to the registry.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddClient} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="client-name">Client Name</Label>
+              <Input
+                id="client-name"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Enter client name"
+              />
+              {clientError && <p className="text-destructive text-xs">{clientError}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAddClientOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={addClientMutation.isPending}>
+                {addClientMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : 'Add Client'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Dialog */}
+      <Dialog open={editClientOpen} onOpenChange={(open) => { if (!open) { setClientName(''); setClientError(''); setSelectedClient(null); } setEditClientOpen(open); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Client</DialogTitle>
+            <DialogDescription>Update the client organization name.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRenameClient} className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-client-name">Client Name</Label>
+              <Input
+                id="edit-client-name"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Enter new name"
+              />
+              {clientError && <p className="text-destructive text-xs">{clientError}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditClientOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={renameClientMutation.isPending}>
+                {renameClientMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Client Confirmation */}
+      <AlertDialog open={deleteClientId !== null} onOpenChange={(open) => !open && setDeleteClientId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this client? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteClient}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,69 +1,66 @@
-import React from 'react';
-import { AssetStatus, RepairOutcome } from '@/backend';
+import { AssetStatus, RepairOutcome } from '../backend';
 
 interface StatusBadgeProps {
   status?: AssetStatus;
   outcome?: RepairOutcome;
 }
 
-const assetStatusConfig: Record<AssetStatus, { label: string; className: string }> = {
+const statusConfig: Record<AssetStatus, { label: string; classes: string }> = {
   [AssetStatus.inField]: {
     label: 'In Field',
-    className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+    classes: 'bg-success/15 text-success border border-success/30',
   },
   [AssetStatus.inRepair]: {
     label: 'In Repair',
-    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
+    classes: 'bg-warning/15 text-warning border border-warning/30',
   },
   [AssetStatus.inProgramming]: {
     label: 'In Programming',
-    className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200',
+    classes: 'bg-primary/15 text-primary border border-primary/30',
   },
   [AssetStatus.deployed]: {
     label: 'Deployed',
-    className: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
+    classes: 'bg-success/15 text-success border border-success/30',
   },
   [AssetStatus.scrapped]: {
     label: 'Scrapped',
-    className: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+    classes: 'bg-destructive/15 text-destructive border border-destructive/30',
   },
 };
 
-const repairOutcomeConfig: Record<RepairOutcome, { label: string; className: string }> = {
+const outcomeConfig: Record<RepairOutcome, { label: string; classes: string }> = {
   [RepairOutcome.fixed]: {
     label: 'Fixed',
-    className: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
+    classes: 'bg-success/15 text-success border border-success/30',
   },
   [RepairOutcome.replaced]: {
     label: 'Replaced',
-    className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+    classes: 'bg-primary/15 text-primary border border-primary/30',
   },
   [RepairOutcome.scrapped]: {
     label: 'Scrapped',
-    className: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+    classes: 'bg-destructive/15 text-destructive border border-destructive/30',
   },
   [RepairOutcome.pending]: {
     label: 'Pending',
-    className: 'bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-200',
+    classes: 'bg-muted text-muted-foreground border border-border',
   },
 };
 
 export default function StatusBadge({ status, outcome }: StatusBadgeProps) {
   if (status !== undefined) {
-    const config = assetStatusConfig[status];
-    if (!config) return null;
+    const config = statusConfig[status];
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.classes}`}>
         {config.label}
       </span>
     );
   }
 
   if (outcome !== undefined) {
-    const config = repairOutcomeConfig[outcome];
-    if (!config) return null;
+    const config = outcomeConfig[outcome];
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.className}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.classes}`}>
         {config.label}
       </span>
     );

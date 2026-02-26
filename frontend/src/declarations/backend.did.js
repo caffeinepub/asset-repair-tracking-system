@@ -81,6 +81,10 @@ export const RepairTicket = IDL.Record({
   'currentStage' : IDL.Text,
   'outcome' : RepairOutcome,
 });
+export const ManagedUserRole = IDL.Variant({
+  'User' : IDL.Null,
+  'Admin' : IDL.Null,
+});
 export const AuditEntry = IDL.Record({
   'changedBy' : IDL.Text,
   'entryId' : IDL.Text,
@@ -93,6 +97,7 @@ export const UserProfile = IDL.Record({
   'appRole' : AppUserRole,
   'name' : IDL.Text,
 });
+export const Config = IDL.Record({ 'discriminator' : IDL.Text });
 export const ModelCount = IDL.Record({
   'carbon10' : IDL.Nat,
   'vx680' : IDL.Nat,
@@ -111,11 +116,23 @@ export const StageCount = IDL.Record({
   'programming' : IDL.Nat,
   'received' : IDL.Nat,
 });
+export const ManagedUserPublic = IDL.Record({
+  'id' : IDL.Nat,
+  'username' : IDL.Text,
+  'role' : ManagedUserRole,
+});
+export const BatchImportResult = IDL.Record({
+  'errors' : IDL.Vec(IDL.Text),
+  'importedCount' : IDL.Nat,
+  'existingCount' : IDL.Nat,
+  'errorCount' : IDL.Nat,
+});
 export const Client = IDL.Record({
   'id' : IDL.Text,
   'name' : IDL.Text,
   'createTime' : IDL.Int,
 });
+export const LoginResult = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text });
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -125,8 +142,10 @@ export const idlService = IDL.Service({
   'addUser' : IDL.Func([AppUser], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'createRepairTicket' : IDL.Func([RepairTicket], [], []),
+  'createUser' : IDL.Func([IDL.Text, IDL.Text, ManagedUserRole], [IDL.Nat], []),
   'deleteAsset' : IDL.Func([IDL.Text], [], []),
   'deleteClient' : IDL.Func([IDL.Text], [Result], []),
+  'deleteUser' : IDL.Func([IDL.Nat], [], []),
   'filterAssets' : IDL.Func(
       [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text), IDL.Opt(AssetStatus)],
       [IDL.Vec(Asset)],
@@ -151,6 +170,7 @@ export const idlService = IDL.Service({
     ),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getConfig' : IDL.Func([], [Config], ['query']),
   'getCurrentUserRole' : IDL.Func(
       [IDL.Text],
       [IDL.Opt(AppUserRole)],
@@ -194,18 +214,26 @@ export const idlService = IDL.Service({
       [IDL.Opt(UserProfile)],
       ['query'],
     ),
+  'getUsers' : IDL.Func([], [IDL.Vec(ManagedUserPublic)], ['query']),
+  'importAssetBatch' : IDL.Func([IDL.Vec(IDL.Text)], [BatchImportResult], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listAllRepairs' : IDL.Func([], [IDL.Vec(RepairTicket)], ['query']),
   'listAssets' : IDL.Func([], [IDL.Vec(Asset)], ['query']),
   'listClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
   'listParts' : IDL.Func([], [IDL.Vec(Part)], ['query']),
   'listUsers' : IDL.Func([], [IDL.Vec(AppUser)], ['query']),
+  'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
   'renameClient' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchBySerial' : IDL.Func([IDL.Text], [IDL.Vec(Asset)], ['query']),
   'updateAsset' : IDL.Func([IDL.Text, Asset], [], []),
   'updatePartStock' : IDL.Func([IDL.Text, IDL.Int], [], []),
   'updateRepairTicket' : IDL.Func([IDL.Text, RepairTicket], [], []),
+  'updateUser' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, ManagedUserRole],
+      [],
+      [],
+    ),
   'updateUserRole' : IDL.Func([IDL.Text, AppUserRole], [], []),
 });
 
@@ -285,6 +313,10 @@ export const idlFactory = ({ IDL }) => {
     'currentStage' : IDL.Text,
     'outcome' : RepairOutcome,
   });
+  const ManagedUserRole = IDL.Variant({
+    'User' : IDL.Null,
+    'Admin' : IDL.Null,
+  });
   const AuditEntry = IDL.Record({
     'changedBy' : IDL.Text,
     'entryId' : IDL.Text,
@@ -297,6 +329,7 @@ export const idlFactory = ({ IDL }) => {
     'appRole' : AppUserRole,
     'name' : IDL.Text,
   });
+  const Config = IDL.Record({ 'discriminator' : IDL.Text });
   const ModelCount = IDL.Record({
     'carbon10' : IDL.Nat,
     'vx680' : IDL.Nat,
@@ -315,11 +348,23 @@ export const idlFactory = ({ IDL }) => {
     'programming' : IDL.Nat,
     'received' : IDL.Nat,
   });
+  const ManagedUserPublic = IDL.Record({
+    'id' : IDL.Nat,
+    'username' : IDL.Text,
+    'role' : ManagedUserRole,
+  });
+  const BatchImportResult = IDL.Record({
+    'errors' : IDL.Vec(IDL.Text),
+    'importedCount' : IDL.Nat,
+    'existingCount' : IDL.Nat,
+    'errorCount' : IDL.Nat,
+  });
   const Client = IDL.Record({
     'id' : IDL.Text,
     'name' : IDL.Text,
     'createTime' : IDL.Int,
   });
+  const LoginResult = IDL.Variant({ 'ok' : IDL.Text, 'err' : IDL.Text });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -329,8 +374,14 @@ export const idlFactory = ({ IDL }) => {
     'addUser' : IDL.Func([AppUser], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'createRepairTicket' : IDL.Func([RepairTicket], [], []),
+    'createUser' : IDL.Func(
+        [IDL.Text, IDL.Text, ManagedUserRole],
+        [IDL.Nat],
+        [],
+      ),
     'deleteAsset' : IDL.Func([IDL.Text], [], []),
     'deleteClient' : IDL.Func([IDL.Text], [Result], []),
+    'deleteUser' : IDL.Func([IDL.Nat], [], []),
     'filterAssets' : IDL.Func(
         [IDL.Opt(IDL.Text), IDL.Opt(IDL.Text), IDL.Opt(AssetStatus)],
         [IDL.Vec(Asset)],
@@ -355,6 +406,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getConfig' : IDL.Func([], [Config], ['query']),
     'getCurrentUserRole' : IDL.Func(
         [IDL.Text],
         [IDL.Opt(AppUserRole)],
@@ -398,18 +450,26 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(UserProfile)],
         ['query'],
       ),
+    'getUsers' : IDL.Func([], [IDL.Vec(ManagedUserPublic)], ['query']),
+    'importAssetBatch' : IDL.Func([IDL.Vec(IDL.Text)], [BatchImportResult], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listAllRepairs' : IDL.Func([], [IDL.Vec(RepairTicket)], ['query']),
     'listAssets' : IDL.Func([], [IDL.Vec(Asset)], ['query']),
     'listClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
     'listParts' : IDL.Func([], [IDL.Vec(Part)], ['query']),
     'listUsers' : IDL.Func([], [IDL.Vec(AppUser)], ['query']),
+    'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
     'renameClient' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchBySerial' : IDL.Func([IDL.Text], [IDL.Vec(Asset)], ['query']),
     'updateAsset' : IDL.Func([IDL.Text, Asset], [], []),
     'updatePartStock' : IDL.Func([IDL.Text, IDL.Int], [], []),
     'updateRepairTicket' : IDL.Func([IDL.Text, RepairTicket], [], []),
+    'updateUser' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, ManagedUserRole],
+        [],
+        [],
+      ),
     'updateUserRole' : IDL.Func([IDL.Text, AppUserRole], [], []),
   });
 };

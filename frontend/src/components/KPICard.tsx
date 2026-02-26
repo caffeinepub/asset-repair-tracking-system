@@ -1,42 +1,53 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { LucideIcon } from 'lucide-react';
 
 interface KPICardProps {
   title: string;
   value: string | number;
+  icon: LucideIcon;
   description?: string;
-  icon?: LucideIcon;
-  iconColor?: string;
-  trend?: {
-    value: number;
-    label: string;
-    positive?: boolean;
-  };
+  loading?: boolean;
+  accent?: 'default' | 'success' | 'warning' | 'destructive';
 }
 
-export default function KPICard({ title, value, description, icon: Icon, iconColor, trend }: KPICardProps) {
+const accentClasses = {
+  default: 'text-primary',
+  success: 'text-success',
+  warning: 'text-warning',
+  destructive: 'text-destructive',
+};
+
+const accentBgClasses = {
+  default: 'bg-primary/10',
+  success: 'bg-success/10',
+  warning: 'bg-warning/10',
+  destructive: 'bg-destructive/10',
+};
+
+export default function KPICard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  loading = false,
+  accent = 'default',
+}: KPICardProps) {
   return (
-    <Card className="bg-card border-border shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        {Icon && (
-          <div className={`p-2 rounded-lg ${iconColor || 'bg-primary/10'}`}>
-            <Icon className={`h-4 w-4 ${iconColor ? 'text-current' : 'text-primary'}`} />
-          </div>
+    <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+      <div className={`p-2 rounded-md ${accentBgClasses[accent]}`}>
+        <Icon className={`h-5 w-5 ${accentClasses[accent]}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{title}</p>
+        {loading ? (
+          <Skeleton className="h-7 w-16 mt-1" />
+        ) : (
+          <p className="text-2xl font-bold text-foreground mt-0.5">{value}</p>
         )}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-card-foreground">{value}</div>
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         )}
-        {trend && (
-          <p className={`text-xs mt-1 font-medium ${trend.positive ? 'text-success' : 'text-destructive'}`}>
-            {trend.value > 0 ? '+' : ''}{trend.value}% {trend.label}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

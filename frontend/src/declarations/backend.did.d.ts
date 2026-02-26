@@ -39,11 +39,27 @@ export interface AuditEntry {
   'entityType' : string,
   'changeDescription' : string,
 }
+export interface BatchImportResult {
+  'errors' : Array<string>,
+  'importedCount' : bigint,
+  'existingCount' : bigint,
+  'errorCount' : bigint,
+}
 export interface Client {
   'id' : string,
   'name' : string,
   'createTime' : bigint,
 }
+export interface Config { 'discriminator' : string }
+export type LoginResult = { 'ok' : string } |
+  { 'err' : string };
+export interface ManagedUserPublic {
+  'id' : bigint,
+  'username' : string,
+  'role' : ManagedUserRole,
+}
+export type ManagedUserRole = { 'User' : null } |
+  { 'Admin' : null };
 export interface ModelCount {
   'carbon10' : bigint,
   'vx680' : bigint,
@@ -114,8 +130,10 @@ export interface _SERVICE {
   'addUser' : ActorMethod<[AppUser], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createRepairTicket' : ActorMethod<[RepairTicket], undefined>,
+  'createUser' : ActorMethod<[string, string, ManagedUserRole], bigint>,
   'deleteAsset' : ActorMethod<[string], undefined>,
   'deleteClient' : ActorMethod<[string], Result>,
+  'deleteUser' : ActorMethod<[bigint], undefined>,
   'filterAssets' : ActorMethod<
     [[] | [string], [] | [string], [] | [AssetStatus]],
     Array<Asset>
@@ -131,6 +149,7 @@ export interface _SERVICE {
   >,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getConfig' : ActorMethod<[], Config>,
   'getCurrentUserRole' : ActorMethod<[string], [] | [AppUserRole]>,
   'getDeviceModelCounts' : ActorMethod<[], ModelCount>,
   'getLowStockParts' : ActorMethod<[], Array<Part>>,
@@ -155,18 +174,25 @@ export interface _SERVICE {
   >,
   'getUser' : ActorMethod<[string], AppUser>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getUsers' : ActorMethod<[], Array<ManagedUserPublic>>,
+  'importAssetBatch' : ActorMethod<[Array<string>], BatchImportResult>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listAllRepairs' : ActorMethod<[], Array<RepairTicket>>,
   'listAssets' : ActorMethod<[], Array<Asset>>,
   'listClients' : ActorMethod<[], Array<Client>>,
   'listParts' : ActorMethod<[], Array<Part>>,
   'listUsers' : ActorMethod<[], Array<AppUser>>,
+  'login' : ActorMethod<[string, string], LoginResult>,
   'renameClient' : ActorMethod<[string, string], Result>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchBySerial' : ActorMethod<[string], Array<Asset>>,
   'updateAsset' : ActorMethod<[string, Asset], undefined>,
   'updatePartStock' : ActorMethod<[string, bigint], undefined>,
   'updateRepairTicket' : ActorMethod<[string, RepairTicket], undefined>,
+  'updateUser' : ActorMethod<
+    [bigint, string, string, ManagedUserRole],
+    undefined
+  >,
   'updateUserRole' : ActorMethod<[string, AppUserRole], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;

@@ -1,41 +1,153 @@
 {
   "kind": "build_request",
-  "title": "Fix dark mode text contrast on widgets and sections",
-  "priority": "normal",
+  "title": "Add login authentication, role-based access control, and admin user management",
+  "projectName": "Asset Repair Tracker",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled. Ensure CSS custom properties and Tailwind utility classes correctly resolve to high-contrast foreground colors against dark backgrounds across all widget and section components.",
-      "target": "frontend",
+      "text": "Add an AppUser data model to the backend with fields: id (Nat), username (Text), passwordHash (Text), and role (variant { Admin; User }). Store users in a stable HashMap. Seed one default admin account (username: 'admin', password: 'admin123') on first deploy if no users exist.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-4",
-          "msg-5"
+          "msg-10"
         ],
         "quotes": [
-          "i notice when dark mode is enabled, I am unable to see the words on the widgets or sections"
+          "create users' names and passwords for users and admin"
         ]
       },
       "acceptanceCriteria": [
-        "All text inside KPI cards (title, value, description) is readable in dark mode",
-        "Chart labels, axis text, and legend text are visible in dark mode",
-        "Section headings and sub-headings on the Dashboard, Reports, and all other pages are readable in dark mode",
-        "Table cell text, column headers, and filter labels are visible in dark mode",
-        "Badge and status label text is readable in dark mode",
-        "No white-on-white or black-on-black text combinations exist anywhere in dark mode",
-        "Sidebar navigation link text and icons are clearly visible in dark mode",
-        "Header text (app title, user name, role) is clearly visible in dark mode"
+        "AppUser type exists with id, username, passwordHash, and role fields",
+        "Users are stored in stable state that survives upgrades",
+        "A default admin user exists after first deploy"
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Expose backend functions for user management: login(username, password) returning a session token or error; getUsers() returning all users (admin only); createUser(username, password, role) (admin only); updateUser(id, username, password, role) (admin only); deleteUser(id) (admin only).",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-10"
+        ],
+        "quotes": [
+          "create users' names and passwords for users and admin"
+        ]
+      },
+      "acceptanceCriteria": [
+        "login() returns a success result with user info on valid credentials, error on invalid",
+        "getUsers(), createUser(), updateUser(), deleteUser() are gated to admin callers only",
+        "Passwords are stored hashed (using a simple deterministic hash, not plaintext)"
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Replace the Internet Identity authentication gate in the frontend with a username/password login screen. The login screen should show the app logo/name, a username field, a password field, and a Sign In button. On successful authentication, store the logged-in user (id, username, role) in React context/state accessible app-wide.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-9",
+          "msg-10"
+        ],
+        "quotes": [
+          "Authentication: This is more of an internal management list",
+          "Login screen with username + password authentication"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Unauthenticated users see only the login screen",
+        "Incorrect credentials show an error message",
+        "Successful login navigates to the dashboard",
+        "Logged-in user info (name, role) is accessible throughout the app"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add a Settings page accessible only to admin users. Add a 'Settings' navigation link in the Sidebar that is only rendered when the logged-in user has the Admin role. Regular users should not see or be able to navigate to the Settings page.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-8",
+          "msg-9"
+        ],
+        "quotes": [
+          "Settings menu location: Where should this settings menu appear — in a sidebar",
+          "should it only be accessible to admins? yes"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Settings link appears in the sidebar only for admin users",
+        "Regular users cannot access /settings directly (redirected away)",
+        "Admin users can navigate to the Settings page"
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Build the Settings page with a User Management section. Display a table of all users showing their username and role. Provide buttons to: (1) Create a new user (opens a dialog with username, password, and role fields), (2) Edit an existing user (opens a pre-filled dialog for username, password, and role), (3) Delete a user (with a confirmation prompt). Prevent deletion of the currently logged-in admin user.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-10"
+        ],
+        "quotes": [
+          "User management inside Settings: create, view, edit, and delete users with name, password, and role (admin or regular user)"
+        ]
+      },
+      "acceptanceCriteria": [
+        "User table lists all users with username and role columns",
+        "Create user dialog validates that username and password are non-empty",
+        "Edit user dialog pre-fills existing username and role",
+        "Delete prompts for confirmation before removing",
+        "Logged-in admin cannot delete their own account"
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "text": "Enforce role-based access control across the app. Regular users (role: User) should not see the Settings sidebar link, cannot access admin-only pages, and all admin-only action buttons (add/edit/delete) on AssetsPage, PartsInventoryPage, RepairTicketsPage, etc. remain gated. Base access checks on the locally stored logged-in user role instead of the previous Internet Identity-based role check.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-9"
+        ],
+        "quotes": [
+          "Admins should have special privileges within the app, while regular users have limited access"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Admin-only UI elements are hidden for regular users",
+        "Role gating works based on the username/password login session role",
+        "Regular users can view data but cannot create, edit, or delete records"
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Update the Header component to display the logged-in user's username and role, and replace the Internet Identity logout button with a logout action that clears the local session and returns the user to the login screen.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-10"
+        ],
+        "quotes": [
+          "Login screen with username + password authentication"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Header shows the current user's name and role badge",
+        "Logout button clears session and shows the login screen",
+        "No Internet Identity references remain visible in the UI"
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
-    "Dark mode fix must use the existing CSS custom property design token system defined in frontend/src/index.css and frontend/index.css — do not introduce hardcoded color values"
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts",
+    "Keep all backend logic in a single Motoko actor in backend/main.mo",
+    "Preserve all existing features: assets, repair tickets, parts inventory, audit log, reports, clients"
   ],
   "nonGoals": [
-    "Adding new dashboard widgets or features",
-    "Changing the light mode appearance",
-    "Modifying backend logic or data models"
+    "Full cryptographic password hashing (a deterministic simple hash is acceptable)",
+    "Session token expiry or refresh mechanisms",
+    "Multi-factor authentication",
+    "Email-based password reset"
   ],
   "imageRequirements": {
     "required": [],

@@ -1,91 +1,148 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fix dark mode text contrast on widgets and sections",
+  "title": "Add login authentication, role-based access control, and admin user management",
   "requirements": [
     {
-      "id": "REQ-1",
-      "summary": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled using CSS custom properties and Tailwind utility classes",
+      "id": "REQ-3",
+      "summary": "Replace Internet Identity with username/password login screen and store authenticated user in React context",
       "acceptanceCriteria": [
-        "All text inside KPI cards (title, value, description) is readable in dark mode",
-        "Chart labels, axis text, and legend text are visible in dark mode",
-        "Section headings and sub-headings on the Dashboard, Reports, and all other pages are readable in dark mode",
-        "Table cell text, column headers, and filter labels are visible in dark mode",
-        "Badge and status label text is readable in dark mode",
-        "No white-on-white or black-on-black text combinations exist anywhere in dark mode",
-        "Sidebar navigation link text and icons are clearly visible in dark mode",
-        "Header text (app title, user name, role) is clearly visible in dark mode"
+        "Unauthenticated users see only the login screen",
+        "Incorrect credentials show an error message",
+        "Successful login navigates to the dashboard",
+        "Logged-in user info (name, role) is accessible throughout the app"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/index.css",
-          "operation": "modify",
-          "description": "Review and ensure all CSS custom properties for dark mode (--foreground, --card-foreground, --muted-foreground, --accent-foreground, --popover-foreground) provide high-contrast values against their respective dark backgrounds. Verify dark mode token definitions resolve to light foreground colors (e.g., OKLCH lightness >= 85%) for readability against dark backgrounds."
+          "path": "frontend/src/contexts/AuthContext.tsx",
+          "operation": "create",
+          "description": "Create an AuthContext and AuthProvider to manage the currently authenticated user state (id, username, role) throughout the app. Expose login, logout, and user state via context. The login function calls the backend login() method with username and password, stores the returned user info on success, and provides error handling for invalid credentials."
         },
         {
-          "path": "frontend/src/components/KPICard.tsx",
-          "operation": "modify",
-          "description": "Ensure all text elements (title, value, description) use high-contrast Tailwind text utility classes that resolve correctly in dark mode via CSS custom properties. Replace any hardcoded color classes with theme-aware utilities (e.g., text-foreground, text-muted-foreground, text-card-foreground) to guarantee visibility in dark mode."
+          "path": "frontend/src/components/LoginScreen.tsx",
+          "operation": "create",
+          "description": "Create a LoginScreen component displaying the app logo (frontend/public/assets/generated/verifone-logo.dim_256x256.png), username field, password field, and Sign In button. On submit, call the login function from AuthContext. Show error messages for authentication failures. On success, navigate to the dashboard."
         },
         {
-          "path": "frontend/src/components/RepairsByStageChart.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Update Recharts component styling to ensure all chart text (labels, axis text, legend text, tooltips) use high-contrast colors in dark mode. Apply CSS custom property-based text colors or explicit dark mode-compatible Recharts style props to CartesianGrid, XAxis, YAxis, Tooltip, Legend, and Bar label components."
+          "description": "Wrap the app with AuthProvider from AuthContext. Replace the Internet Identity authentication gate with a check for the authenticated user from AuthContext. If no user is authenticated, render LoginScreen instead of the router. Remove references to InternetIdentityProvider and the profile setup modal."
         },
         {
-          "path": "frontend/src/components/TopFailingModelsChart.tsx",
+          "path": "frontend/src/main.tsx",
           "operation": "modify",
-          "description": "Update Recharts component styling to ensure all chart text (labels, axis text, legend text, tooltips) use high-contrast colors in dark mode. Apply CSS custom property-based text colors or explicit dark mode-compatible Recharts style props to CartesianGrid, XAxis, YAxis, Tooltip, and Bar label components."
-        },
+          "description": "Remove the InternetIdentityProvider wrapper since Internet Identity is no longer used for authentication."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add admin-only Settings page and conditionally render Settings link in Sidebar",
+      "acceptanceCriteria": [
+        "Settings link appears in the sidebar only for admin users",
+        "Regular users cannot access /settings directly (redirected away)",
+        "Admin users can navigate to the Settings page"
+      ],
+      "file_operations": [
         {
-          "path": "frontend/src/components/Header.tsx",
+          "path": "frontend/src/pages/SettingsPage.tsx",
           "operation": "modify",
-          "description": "Ensure app title, user name, user role, and all interactive elements (theme toggle, logout button) use high-contrast text color utilities (text-foreground or text-card-foreground) that remain visible in dark mode. Verify icon colors also resolve correctly."
+          "description": "Update the SettingsPage component to add an admin-only route guard at the top of the component. Use the authenticated user from AuthContext to check if the user has the Admin role (ManagedUserRole.Admin). If not admin, redirect to the dashboard and display an access denied message. Retain the existing user management and client management sections."
         },
         {
           "path": "frontend/src/components/Sidebar.tsx",
           "operation": "modify",
-          "description": "Ensure all navigation link text, icons, user profile display text, and branding footer text use high-contrast color classes (text-sidebar-foreground or text-foreground) that remain clearly visible in dark mode. Verify active/hover states also maintain readability."
+          "description": "Update the Sidebar component to conditionally render the Settings navigation link only when the authenticated user from AuthContext has the Admin role (ManagedUserRole.Admin). Remove the Internet Identity-based isAdmin check and replace with a check against the AuthContext user role."
         },
         {
-          "path": "frontend/src/components/StatusBadge.tsx",
+          "path": "frontend/src/App.tsx",
           "operation": "modify",
-          "description": "Ensure badge text uses high-contrast foreground colors in dark mode for all AssetStatus and RepairOutcome variants. Use Tailwind utilities or CSS custom properties that guarantee readability against badge background colors in both light and dark modes."
+          "description": "Add route registration for /settings that renders SettingsPage. Ensure the route is protected by checking the authenticated user role in AuthContext."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Build User Management section in Settings page with create, edit, delete user dialogs",
+      "acceptanceCriteria": [
+        "User table lists all users with username and role columns",
+        "Create user dialog validates that username and password are non-empty",
+        "Edit user dialog pre-fills existing username and role",
+        "Delete prompts for confirmation before removing",
+        "Logged-in admin cannot delete their own account"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/CreateUserDialog.tsx",
+          "operation": "create",
+          "description": "Create a dialog component for adding a new user with fields for username, password, and role (Admin or User). Validate that username and password are non-empty before submission. Call the createUser mutation from useQueries. Show success/error toasts and close dialog on success."
         },
         {
-          "path": "frontend/src/pages/DashboardPage.tsx",
-          "operation": "modify",
-          "description": "Ensure all section headings, sub-headings, table headers, and text content throughout the dashboard page use high-contrast Tailwind text utilities (text-foreground, text-muted-foreground) that resolve correctly in dark mode via CSS custom properties."
-        },
-        {
-          "path": "frontend/src/pages/AssetsPage.tsx",
-          "operation": "modify",
-          "description": "Ensure table headers, table cell text, filter labels, search input text, and all interactive elements use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode. Verify dropdown options and modal text also maintain readability."
-        },
-        {
-          "path": "frontend/src/pages/RepairTicketsPage.tsx",
-          "operation": "modify",
-          "description": "Ensure table headers, table cell text, filter labels, search input text, and all interactive elements use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode. Verify dropdown options and modal text also maintain readability."
-        },
-        {
-          "path": "frontend/src/pages/ReportsPage.tsx",
-          "operation": "modify",
-          "description": "Ensure all section headings, chart titles, axis labels, legend text, table headers, and data cells use high-contrast text utilities that remain visible in dark mode. Update all Recharts components (BarChart, XAxis, YAxis, Tooltip, Legend) to use CSS custom property-based or explicit dark mode-compatible text colors."
-        },
-        {
-          "path": "frontend/src/pages/PartsInventoryPage.tsx",
-          "operation": "modify",
-          "description": "Ensure table headers, table cell text, low-stock alert banner text, filter labels, and all interactive elements use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode."
-        },
-        {
-          "path": "frontend/src/pages/AuditLogPage.tsx",
-          "operation": "modify",
-          "description": "Ensure table headers, table cell text, search input labels, pagination controls, and all text content use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode."
+          "path": "frontend/src/components/EditUserDialog.tsx",
+          "operation": "create",
+          "description": "Create a dialog component for editing an existing user. Pre-fill the username and role fields from the selected user. Allow updating username, password (optional if blank), and role. Call the updateUser mutation from useQueries. Show success/error toasts and close dialog on success."
         },
         {
           "path": "frontend/src/pages/SettingsPage.tsx",
           "operation": "modify",
-          "description": "Ensure all section headings, table headers, table cell text, form labels, and modal dialog text use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode."
+          "description": "Add a User Management section displaying a table of all users (fetched via getUsers query) with columns for username and role. Include action buttons: Create New User (opens CreateUserDialog), Edit (opens EditUserDialog with selected user), and Delete (shows confirmation prompt). Prevent deletion of the currently logged-in admin user by comparing the user id from AuthContext with the table row user id. Use the existing query hooks from useQueries for fetching, creating, updating, and deleting users."
+        },
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Verify that query hooks for getUsers, createUser, updateUser, and deleteUser are present and correctly configured. If missing, add them using the backend interface methods. Ensure mutations invalidate the 'users' query key on success."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Enforce role-based access control using the locally stored user role from AuthContext",
+      "acceptanceCriteria": [
+        "Admin-only UI elements are hidden for regular users",
+        "Role gating works based on the username/password login session role",
+        "Regular users can view data but cannot create, edit, or delete records"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/AssetsPage.tsx",
+          "operation": "modify",
+          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Show add/edit/delete/import buttons only when the user has the Admin role (ManagedUserRole.Admin)."
+        },
+        {
+          "path": "frontend/src/pages/PartsInventoryPage.tsx",
+          "operation": "modify",
+          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Show add part and adjust stock buttons only when the user has the Admin role (ManagedUserRole.Admin)."
+        },
+        {
+          "path": "frontend/src/pages/RepairTicketsPage.tsx",
+          "operation": "modify",
+          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Show create new ticket and edit buttons only when the user has the Admin role (ManagedUserRole.Admin)."
+        },
+        {
+          "path": "frontend/src/components/RepairTicketDetailModal.tsx",
+          "operation": "modify",
+          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Enable editing of diagnosis, outcome, and parts replaced fields only when the user has the Admin role (ManagedUserRole.Admin)."
+        },
+        {
+          "path": "frontend/src/components/AssetDetailModal.tsx",
+          "operation": "modify",
+          "description": "If the modal contains any admin-only actions, replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Update Header to display logged-in username and role, and replace logout with session clearing",
+      "acceptanceCriteria": [
+        "Header shows the current user's name and role badge",
+        "Logout button clears session and shows the login screen",
+        "No Internet Identity references remain visible in the UI"
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Update the Header component to display the authenticated user's username and role badge from AuthContext instead of the Internet Identity user info. Replace the Internet Identity logout button with a logout button that calls the logout function from AuthContext, clears the local session, and returns to the login screen. Remove all references to Internet Identity."
         }
       ]
     }

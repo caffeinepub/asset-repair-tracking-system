@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Search, AlertTriangle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useActor } from '../hooks/useActor';
+import { Part } from '../backend';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,255 +13,273 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { StockAdjustmentModal } from '@/components/StockAdjustmentModal';
-import { useListParts, useGetLowStockParts, useAddPart } from '@/hooks/useQueries';
+import { Plus, Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Part } from '@/backend';
+import { toast } from 'sonner';
 
-const MODELS = ['VX680', 'VX820', 'M400', 'Carbon 10', 'Carbon 8'];
+export default function PartsInventoryPage() {
+  const { actor, isFetching: actorFetching } = useActor();
+  const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
 
-function AddPartDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const addPart = useAddPart();
-  const [form, setForm] = useState({
+  const [search, setSearch] = useState('');
+  const [addPartOpen, setAddPartOpen] = useState(false);
+  const [adjustPart, setAdjustPart] = useState<Part | null>(null);
+  const [newPart, setNewPart] = useState({
     partNumber: '',
     partName: '',
     compatibleModel: '',
-    quantityInStock: 0,
-    lowStockThreshold: 5,
+    quantityInStock: '',
+    lowStockThreshold: '',
+  });
+  const [partError, setPartError] = useState('');
+
+  const { data: parts = [], isLoading } = useQuery<Part[]>({
+    queryKey: ['parts'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.listParts();
+    },
+    enabled: !!actor && !actorFetching,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await addPart.mutateAsync({
-      partNumber: form.partNumber,
-      partName: form.partName,
-      compatibleModel: form.compatibleModel,
-      quantityInStock: BigInt(form.quantityInStock),
-      lowStockThreshold: BigInt(form.lowStockThreshold),
-    });
-    onClose();
-  };
+  const { data: lowStockParts = [] } = useQuery<Part[]>({
+    queryKey: ['lowStockParts'],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getLowStockParts();
+    },
+    enabled: !!actor && !actorFetching,
+  });
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border text-card-foreground">
-        <DialogHeader>
-          <DialogTitle className="text-card-foreground">Add New Part</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-foreground">Part Number</Label>
-            <Input
-              value={form.partNumber}
-              onChange={(e) => setForm({ ...form, partNumber: e.target.value })}
-              required
-              className="bg-background text-foreground border-input"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-foreground">Part Name</Label>
-            <Input
-              value={form.partName}
-              onChange={(e) => setForm({ ...form, partName: e.target.value })}
-              required
-              className="bg-background text-foreground border-input"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-foreground">Compatible Model</Label>
-            <Select
-              value={form.compatibleModel}
-              onValueChange={(v) => setForm({ ...form, compatibleModel: v })}
-            >
-              <SelectTrigger className="bg-background text-foreground border-input">
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover text-popover-foreground border-border">
-                {MODELS.map((m) => (
-                  <SelectItem key={m} value={m}>{m}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-foreground">Qty in Stock</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.quantityInStock}
-                onChange={(e) => setForm({ ...form, quantityInStock: Number(e.target.value) })}
-                className="bg-background text-foreground border-input"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-foreground">Low Stock Threshold</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.lowStockThreshold}
-                onChange={(e) => setForm({ ...form, lowStockThreshold: Number(e.target.value) })}
-                className="bg-background text-foreground border-input"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} className="border-border text-foreground">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={addPart.isPending}>
-              {addPart.isPending ? 'Adding...' : 'Add Part'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+  const addPartMutation = useMutation({
+    mutationFn: async (part: Part) => {
+      if (!actor) throw new Error('Actor not available');
+      await actor.addPart(part);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parts'] });
+      queryClient.invalidateQueries({ queryKey: ['lowStockParts'] });
+      toast.success('Part added successfully.');
+    },
+    onError: (err: any) => toast.error(err.message || 'Failed to add part.'),
+  });
 
-export default function PartsInventoryPage() {
-  const [search, setSearch] = useState('');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [adjustingPart, setAdjustingPart] = useState<Part | null>(null);
-
-  const { data: parts, isLoading } = useListParts();
-  const { data: lowStockParts } = useGetLowStockParts();
-
-  const filtered = (parts ?? []).filter((part) => {
+  const filtered = parts.filter((p) => {
     return (
       !search ||
-      part.partNumber.toLowerCase().includes(search.toLowerCase()) ||
-      part.partName.toLowerCase().includes(search.toLowerCase()) ||
-      part.compatibleModel.toLowerCase().includes(search.toLowerCase())
+      p.partNumber.toLowerCase().includes(search.toLowerCase()) ||
+      p.partName.toLowerCase().includes(search.toLowerCase()) ||
+      p.compatibleModel.toLowerCase().includes(search.toLowerCase())
     );
   });
+
+  const handleAddPart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPart.partNumber.trim() || !newPart.partName.trim()) {
+      setPartError('Part number and name are required.');
+      return;
+    }
+    setPartError('');
+    const qty = parseInt(newPart.quantityInStock) || 0;
+    const threshold = parseInt(newPart.lowStockThreshold) || 0;
+    await addPartMutation.mutateAsync({
+      partNumber: newPart.partNumber.trim(),
+      partName: newPart.partName.trim(),
+      compatibleModel: newPart.compatibleModel.trim(),
+      quantityInStock: BigInt(qty),
+      lowStockThreshold: BigInt(threshold),
+    });
+    setNewPart({ partNumber: '', partName: '', compatibleModel: '', quantityInStock: '', lowStockThreshold: '' });
+    setAddPartOpen(false);
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Parts Inventory</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage spare parts and stock levels</p>
+          <p className="text-muted-foreground text-sm mt-1">Manage spare parts and stock levels</p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Part
-        </Button>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setAddPartOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Part
+          </Button>
+        )}
       </div>
 
-      {/* Low stock alert */}
-      {lowStockParts && lowStockParts.length > 0 && (
-        <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle className="text-destructive font-semibold">Low Stock Alert</AlertTitle>
-          <AlertDescription className="text-destructive/90">
-            {lowStockParts.length} part{lowStockParts.length !== 1 ? 's are' : ' is'} below the low stock threshold:{' '}
+      {/* Low Stock Alert */}
+      {lowStockParts.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertTitle>Low Stock Alert</AlertTitle>
+          <AlertDescription>
+            {lowStockParts.length} part{lowStockParts.length > 1 ? 's are' : ' is'} below the low stock threshold:{' '}
             {lowStockParts.map((p) => p.partName).join(', ')}.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Search */}
-      <Card className="bg-card border-border">
-        <CardContent className="pt-4 pb-4">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by part number, name, or model..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-background text-foreground placeholder:text-muted-foreground border-input"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search parts..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
       {/* Table */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-card-foreground">
-            {isLoading ? 'Loading...' : `${filtered.length} Part${filtered.length !== 1 ? 's' : ''}`}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-6 text-center">No parts found.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-muted-foreground font-medium">Part Number</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Part Name</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Compatible Model</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">In Stock</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Low Stock Threshold</TableHead>
-                  <TableHead className="text-muted-foreground font-medium">Actions</TableHead>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Part Number</TableHead>
+                <TableHead>Part Name</TableHead>
+                <TableHead>Compatible Model</TableHead>
+                <TableHead>In Stock</TableHead>
+                <TableHead>Threshold</TableHead>
+                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={isAdmin ? 6 : 5} className="text-center text-muted-foreground py-12">
+                    No parts found.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((part) => {
+              ) : (
+                filtered.map((part) => {
                   const isLow = part.quantityInStock <= part.lowStockThreshold;
                   return (
-                    <TableRow key={part.partNumber} className="border-border hover:bg-muted/50">
-                      <TableCell className="font-mono text-sm text-foreground">{part.partNumber}</TableCell>
-                      <TableCell className="text-sm text-foreground">{part.partName}</TableCell>
-                      <TableCell className="text-sm text-foreground">{part.compatibleModel}</TableCell>
+                    <TableRow key={part.partNumber}>
+                      <TableCell className="font-mono text-sm">{part.partNumber}</TableCell>
+                      <TableCell>{part.partName}</TableCell>
+                      <TableCell>{part.compatibleModel}</TableCell>
                       <TableCell>
-                        <span className={`text-sm font-medium ${isLow ? 'text-destructive' : 'text-foreground'}`}>
-                          {Number(part.quantityInStock)}
-                        </span>
+                        <Badge variant={isLow ? 'destructive' : 'default'}>
+                          {String(part.quantityInStock)}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{Number(part.lowStockThreshold)}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setAdjustingPart(part)}
-                          className="text-xs border-border text-foreground hover:bg-accent"
-                        >
-                          Adjust Stock
-                        </Button>
-                      </TableCell>
+                      <TableCell className="text-muted-foreground">{String(part.lowStockThreshold)}</TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAdjustPart(part)}
+                          >
+                            Adjust Stock
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {showAddDialog && (
-        <AddPartDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} />
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       )}
-      {adjustingPart && (
+
+      {/* Add Part Dialog */}
+      {isAdmin && (
+        <Dialog open={addPartOpen} onOpenChange={(open) => { if (!open) { setPartError(''); } setAddPartOpen(open); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Part</DialogTitle>
+              <DialogDescription>Register a new spare part in the inventory.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleAddPart} className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="part-number">Part Number</Label>
+                <Input
+                  id="part-number"
+                  value={newPart.partNumber}
+                  onChange={(e) => setNewPart({ ...newPart, partNumber: e.target.value })}
+                  placeholder="e.g. P-001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="part-name">Part Name</Label>
+                <Input
+                  id="part-name"
+                  value={newPart.partName}
+                  onChange={(e) => setNewPart({ ...newPart, partName: e.target.value })}
+                  placeholder="e.g. Display Screen"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="compatible-model">Compatible Model</Label>
+                <Input
+                  id="compatible-model"
+                  value={newPart.compatibleModel}
+                  onChange={(e) => setNewPart({ ...newPart, compatibleModel: e.target.value })}
+                  placeholder="e.g. VX680"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="qty-in-stock">Qty in Stock</Label>
+                  <Input
+                    id="qty-in-stock"
+                    type="number"
+                    min="0"
+                    value={newPart.quantityInStock}
+                    onChange={(e) => setNewPart({ ...newPart, quantityInStock: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="low-stock-threshold">Low Stock Threshold</Label>
+                  <Input
+                    id="low-stock-threshold"
+                    type="number"
+                    min="0"
+                    value={newPart.lowStockThreshold}
+                    onChange={(e) => setNewPart({ ...newPart, lowStockThreshold: e.target.value })}
+                    placeholder="5"
+                  />
+                </div>
+              </div>
+              {partError && <p className="text-destructive text-xs">{partError}</p>}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setAddPartOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={addPartMutation.isPending}>
+                  {addPartMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : 'Add Part'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Stock Adjustment Modal — uses onClose prop */}
+      {adjustPart && (
         <StockAdjustmentModal
-          part={adjustingPart}
-          open={!!adjustingPart}
-          onClose={() => setAdjustingPart(null)}
+          open={!!adjustPart}
+          onClose={() => setAdjustPart(null)}
+          part={adjustPart}
         />
       )}
     </div>

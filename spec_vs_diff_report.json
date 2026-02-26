@@ -1,26 +1,61 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T04:03:04.656Z",
-  "summary": "The diff implements REQ-1 comprehensively. Dark mode CSS custom properties are defined in frontend/src/index.css with high-contrast OKLCH tokens for all semantic color roles (foreground, card-foreground, muted-foreground, sidebar-foreground, popover-foreground, etc.). All major components and pages (Header, KPICard, Sidebar, StatusBadge, chart components, and all page components) use these semantic tokens via Tailwind utility classes. Chart axes use CSS custom property references (var(--muted-foreground), var(--border)). No hardcoded color values are introduced for text contrast. No files under the protected paths were modified. All acceptance criteria appear addressed.",
-  "missing_requirements": [],
-  "hallucinated_features": [],
-  "confidence": 0.88,
+  "generatedAt": "2026-02-26T06:42:48.937Z",
+  "summary": "The diff implements the majority of all 7 requirements. Backend has AppUser/ManagedUser model, login, getUsers, createUser, updateUser, deleteUser. Frontend has LoginScreen, AuthContext, Header update, Sidebar admin-gating, SettingsPage with user management, and role-based gating on assets/parts/tickets pages. A few minor gaps exist around route-level redirect enforcement for /settings and the admin-only gating mechanism for backend functions.",
+  "missing_requirements": [
+    {
+      "id": "REQ-2",
+      "requirement": "getUsers(), createUser(), updateUser(), deleteUser() are gated to admin callers only (backend enforcement)",
+      "reason": "The backend main.mo is truncated so it is unclear whether admin-only gating is enforced server-side for those endpoints. The login function returns a session token but there is no visible Principal-based server-side check for admin-only functions in the truncated diff. The frontend parses the token client-side only, which is insufficient for true backend gating.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Regular users cannot access /settings directly (redirected away)",
+      "reason": "The SettingsPage uses a React useEffect redirect after render, but there is no route-level beforeLoad guard defined in App.tsx for the /settings route. A direct URL navigation by a regular user would briefly render the page before being redirected, which may not fully satisfy the AC.",
+      "evidence": [
+        "frontend/src/App.tsx",
+        "frontend/src/pages/SettingsPage.tsx"
+      ]
+    }
+  ],
+  "hallucinated_features": [
+    {
+      "description": "Client management section added to the SettingsPage (add/rename/delete clients)",
+      "reason": "The build request only asked for a User Management section in the Settings page. The diff adds a full client registry management UI with add, edit, and delete client dialogs inside SettingsPage, which was not requested.",
+      "evidence": [
+        "frontend/src/pages/SettingsPage.tsx"
+      ]
+    },
+    {
+      "description": "backend/migration.mo file added with explicit migration support",
+      "reason": "A migration module was added to the backend and the actor was configured with explicit migration. The build request made no mention of adding a migration module or enabling explicit migration.",
+      "evidence": [
+        "backend/migration.mo",
+        "backend/main.mo"
+      ]
+    }
+  ],
+  "confidence": 0.72,
   "changed_files": [
+    "backend/main.mo",
+    "backend/migration.mo",
     "frontend-file-summaries.txt",
+    "frontend/src/App.tsx",
+    "frontend/src/components/CreateUserDialog.tsx",
+    "frontend/src/components/EditUserDialog.tsx",
     "frontend/src/components/Header.tsx",
-    "frontend/src/components/KPICard.tsx",
-    "frontend/src/components/RepairsByStageChart.tsx",
+    "frontend/src/components/Layout.tsx",
+    "frontend/src/components/LoginScreen.tsx",
     "frontend/src/components/Sidebar.tsx",
-    "frontend/src/components/StatusBadge.tsx",
-    "frontend/src/components/TopFailingModelsChart.tsx",
-    "frontend/src/index.css",
+    "frontend/src/contexts/AuthContext.tsx",
+    "frontend/src/hooks/useQueries.ts",
     "frontend/src/pages/AssetsPage.tsx",
-    "frontend/src/pages/AuditLogPage.tsx",
-    "frontend/src/pages/DashboardPage.tsx",
     "frontend/src/pages/PartsInventoryPage.tsx",
     "frontend/src/pages/RepairTicketsPage.tsx",
-    "frontend/src/pages/ReportsPage.tsx",
     "frontend/src/pages/SettingsPage.tsx",
     "project_state.json"
   ]
