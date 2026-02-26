@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 3,
+  "summary": "A repair management application with a dashboard. The dashboard includes a 'Repairs by Stage' vertical bar chart (green) and a 'Top Failing Models' horizontal bar chart (orange), both pulling live data from real backend repair ticket records. Dark/light mode toggle and Admin role login are also present. The dashboard is structured to accommodate additional widgets in the future.",
+  "architectural_notes": [
+    "Dashboard is structured to accommodate additional widgets/sections beyond the initial two charts.",
+    "Charts pull live data from real backend repair ticket records (not mock data)."
+  ],
+  "known_issues": [],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-add-a-tanstack-query-hook-in-frontend-src-hooks-usequeries-ts-for-fetching-repairs-by-stage-aggregation-data-from-the-new-backend-query-function",
+      "title": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching repairs-by-stage aggregation data from the new backend query function.",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-tanstack-query-hook-in-frontend-src-hooks-usequeries-ts-for-fetching-top-failing-models-aggregation-data-from-the-new-backend-query-function",
+      "title": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching top-failing-models aggregation data from the new backend query function.",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-repairs-by-stage-vertical-bar-chart-to-the-existing-dashboardpage-frontend-src-pages-dashboardpage-tsx-using-recharts-barchart-the-bars-must-be-green-10b981-or-similar-x-axis-labels-must-show-all-nine-stage-names-rotated-at-an-angle-for-readability-matching-the-screenshot-awaiting-parts-closed-deployed-diagnosing-programming-qa-testing-ready-deploy-received-repairing-and-the-y-axis-must-show-repair-counts-the-chart-must-be-displayed-in-a-card-with-the-title-repairs-by-stage-and-pull-live-data-via-the-userepairsbystage-hook",
+      "title": "Add a 'Repairs by Stage' vertical bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart. The bars must be green (#10b981 or similar), X-axis labels must show all nine stage names rotated at an angle for readability (matching the screenshot: AWAITING PARTS, CLOSED, DEPLOYED, DIAGNOSING, PROGRAMMING, QA TESTING, READY DEPLOY, RECEIVED, REPAIRING), and the Y-axis must show repair counts. The chart must be displayed in a card with the title 'Repairs by Stage' and pull live data via the useRepairsByStage hook.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-top-failing-models-horizontal-bar-chart-to-the-existing-dashboardpage-frontend-src-pages-dashboardpage-tsx-using-recharts-barchart-with-layout-vertical-the-bars-must-be-orange-f59e0b-or-similar-y-axis-labels-must-show-model-names-vx680-vx820-m400-carbon-10-carbon-8-and-the-x-axis-must-show-repair-counts-the-chart-must-be-displayed-in-a-card-with-the-title-top-failing-models-and-pull-live-data-via-the-usetopfailingmodels-hook",
+      "title": "Add a 'Top Failing Models' horizontal bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart with layout='vertical'. The bars must be orange (#f59e0b or similar), Y-axis labels must show model names (VX680, VX820, M400, Carbon 10, Carbon 8), and the X-axis must show repair counts. The chart must be displayed in a card with the title 'Top Failing Models' and pull live data via the useTopFailingModels hook.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-lay-out-the-two-new-charts-side-by-side-in-a-two-column-grid-row-on-the-dashboardpage-matching-the-layout-shown-in-the-uploaded-screenshot-positioned-below-the-existing-kpi-cards-and-above-the-recent-tickets-assets-tables",
+      "title": "Lay out the two new charts side-by-side in a two-column grid row on the DashboardPage, matching the layout shown in the uploaded screenshot, positioned below the existing KPI cards and above the recent tickets/assets tables.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Add 'Repairs by Stage' vertical bar chart (green) to existing dashboard, pulling live data from backend repair ticket records",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Add 'Top Failing Models' horizontal bar chart (orange) to existing dashboard, pulling live data from backend repair ticket records",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-3",
+      "summary": "Add a backend query function that aggregates repair tickets by their current stage/status and returns a count per stage (e.g., Awaiting Parts, Closed, Deployed, Diagnosing, Programming, QA Testing, Ready Deploy, Received, Repairing).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-4",
+      "summary": "Add a backend query function that aggregates repair tickets by device model and returns the top failing models sorted by repair count descending (top 5 minimum: VX680, VX820, M400, Carbon 10, Carbon 8).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "status": "pending"
+    }
+  ],
+  "gameProjectType": "none",
+  "projectName": "Rebtekx Repair Tracker",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

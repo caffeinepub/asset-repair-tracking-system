@@ -1,0 +1,102 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Add Repairs by Stage and Top Failing Models charts to Dashboard",
+  "requirements": [
+    {
+      "id": "REQ-3",
+      "summary": "Add TanStack Query hook for fetching repairs-by-stage aggregation data",
+      "acceptanceCriteria": [
+        "A useRepairsByStage hook exists that calls the backend aggregation query and returns stage/count data.",
+        "The hook follows the same pattern as existing query hooks in useQueries.ts."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a useRepairsByStage hook that calls actor.getStageCounts() and returns the StageCount data. Follow the existing pattern of useQuery hooks in this file, using queryKey ['repairsByStage'] and enabling the query only when actor is available."
+        }
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "summary": "Add TanStack Query hook for fetching top-failing-models aggregation data",
+      "acceptanceCriteria": [
+        "A useTopFailingModels hook exists that calls the backend aggregation query and returns model/count data.",
+        "The hook follows the same pattern as existing query hooks in useQueries.ts."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add a useTopFailingModels hook that calls actor.getDeviceModelCounts() and returns the ModelCount data. Follow the existing pattern of useQuery hooks in this file, using queryKey ['topFailingModels'] and enabling the query only when actor is available."
+        }
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "summary": "Add 'Repairs by Stage' vertical bar chart to DashboardPage with green bars, rotated X-axis labels, and live data",
+      "acceptanceCriteria": [
+        "The 'Repairs by Stage' bar chart is visible on the dashboard page.",
+        "Bars are rendered in green.",
+        "All nine stage names appear on the X-axis, rotated for readability.",
+        "Chart data reflects live counts from actual backend repair ticket records.",
+        "Chart is wrapped in a styled card with the title 'Repairs by Stage'.",
+        "Chart displays a loading skeleton while data is being fetched."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/RepairsByStageChart.tsx",
+          "operation": "create",
+          "description": "Create a new component RepairsByStageChart that uses the useRepairsByStage hook to fetch stage counts. Render a Recharts BarChart with vertical bars in green (#10b981). Transform the StageCount object into an array with keys for all nine stages (awaitingParts, closed, deployed, diagnosing, programming, qaTesting, readyDeploy, received, repairing) and their counts. Configure the X-axis with labels rotated at an angle (e.g., -45 degrees) using textAnchor='end' and angle={-45}. Display a loading skeleton when data is loading. Wrap the chart in a card with the title 'Repairs by Stage' using existing card styling patterns."
+        },
+        {
+          "path": "frontend/src/pages/DashboardPage.tsx",
+          "operation": "modify",
+          "description": "Import and integrate the RepairsByStageChart component into the dashboard layout. Position the chart below the existing KPI cards and above the recent records tables, in a new two-column grid row alongside the TopFailingModelsChart (REQ-6). Use a responsive grid layout that stacks charts vertically on smaller screens."
+        }
+      ]
+    },
+    {
+      "id": "REQ-6",
+      "summary": "Add 'Top Failing Models' horizontal bar chart to DashboardPage with orange bars and live data",
+      "acceptanceCriteria": [
+        "The 'Top Failing Models' horizontal bar chart is visible on the dashboard page.",
+        "Bars are rendered in orange.",
+        "Model names appear on the Y-axis.",
+        "Chart data reflects live counts from actual backend repair ticket records.",
+        "Chart is wrapped in a styled card with the title 'Top Failing Models'.",
+        "Chart displays a loading skeleton while data is being fetched."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/TopFailingModelsChart.tsx",
+          "operation": "create",
+          "description": "Create a new component TopFailingModelsChart that uses the useTopFailingModels hook to fetch model counts. Render a Recharts BarChart with layout='vertical' and horizontal bars in orange (#f59e0b). Transform the ModelCount object into an array with keys for the five models (vx680, vx820, m400, carbon10, carbon8) and their counts, sorted by count descending. Configure the Y-axis to display model names (VX680, VX820, M400, Carbon 10, Carbon 8) and the X-axis to show repair counts. Display a loading skeleton when data is loading. Wrap the chart in a card with the title 'Top Failing Models' using existing card styling patterns."
+        },
+        {
+          "path": "frontend/src/pages/DashboardPage.tsx",
+          "operation": "modify",
+          "description": "Import and integrate the TopFailingModelsChart component into the dashboard layout. Position the chart in the same two-column grid row as the RepairsByStageChart (REQ-5), below the KPI cards and above the recent records tables."
+        }
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "summary": "Lay out the two new charts side-by-side in a two-column grid row on the DashboardPage",
+      "acceptanceCriteria": [
+        "Both charts appear in the same horizontal row on the dashboard.",
+        "The layout uses a two-column grid (each chart taking roughly equal width).",
+        "On smaller screens the layout stacks the charts vertically.",
+        "The charts are positioned below KPI cards and above the recent records tables."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/DashboardPage.tsx",
+          "operation": "modify",
+          "description": "Create a new section in the DashboardPage below the KPI cards and above the recent records tables. Use a responsive grid layout (e.g., grid grid-cols-1 lg:grid-cols-2 gap-6) to display the RepairsByStageChart and TopFailingModelsChart side-by-side on larger screens and stacked vertically on smaller screens. Ensure both charts have equal width in the grid and proper spacing."
+        }
+      ]
+    }
+  ]
+}

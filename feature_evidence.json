@@ -1,0 +1,102 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-add-a-tanstack-query-hook-in-frontend-src-hooks-usequeries-ts-for-fetching-repairs-by-stage-aggregation-data-from-the-new-backend-query-function",
+      "featureTitle": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching repairs-by-stage aggregation data from the new backend query function.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-tanstack-query-hook-in-frontend-src-hooks-usequeries-ts-for-fetching-top-failing-models-aggregation-data-from-the-new-backend-query-function",
+      "featureTitle": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching top-failing-models aggregation data from the new backend query function.",
+      "files": [
+        "frontend/src/hooks/useQueries.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-repairs-by-stage-vertical-bar-chart-to-the-existing-dashboardpage-frontend-src-pages-dashboardpage-tsx-using-recharts-barchart-the-bars-must-be-green-10b981-or-similar-x-axis-labels-must-show-all-nine-stage-names-rotated-at-an-angle-for-readability-matching-the-screenshot-awaiting-parts-closed-deployed-diagnosing-programming-qa-testing-ready-deploy-received-repairing-and-the-y-axis-must-show-repair-counts-the-chart-must-be-displayed-in-a-card-with-the-title-repairs-by-stage-and-pull-live-data-via-the-userepairsbystage-hook",
+      "featureTitle": "Add a 'Repairs by Stage' vertical bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart. The bars must be green (#10b981 or similar), X-axis labels must show all nine stage names rotated at an angle for readability (matching the screenshot: AWAITING PARTS, CLOSED, DEPLOYED, DIAGNOSING, PROGRAMMING, QA TESTING, READY DEPLOY, RECEIVED, REPAIRING), and the Y-axis must show repair counts. The chart must be displayed in a card with the title 'Repairs by Stage' and pull live data via the useRepairsByStage hook.",
+      "files": [
+        "frontend/src/components/RepairsByStageChart.tsx",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-top-failing-models-horizontal-bar-chart-to-the-existing-dashboardpage-frontend-src-pages-dashboardpage-tsx-using-recharts-barchart-with-layout-vertical-the-bars-must-be-orange-f59e0b-or-similar-y-axis-labels-must-show-model-names-vx680-vx820-m400-carbon-10-carbon-8-and-the-x-axis-must-show-repair-counts-the-chart-must-be-displayed-in-a-card-with-the-title-top-failing-models-and-pull-live-data-via-the-usetopfailingmodels-hook",
+      "featureTitle": "Add a 'Top Failing Models' horizontal bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart with layout='vertical'. The bars must be orange (#f59e0b or similar), Y-axis labels must show model names (VX680, VX820, M400, Carbon 10, Carbon 8), and the X-axis must show repair counts. The chart must be displayed in a card with the title 'Top Failing Models' and pull live data via the useTopFailingModels hook.",
+      "files": [
+        "frontend/src/components/TopFailingModelsChart.tsx",
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-6"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-lay-out-the-two-new-charts-side-by-side-in-a-two-column-grid-row-on-the-dashboardpage-matching-the-layout-shown-in-the-uploaded-screenshot-positioned-below-the-existing-kpi-cards-and-above-the-recent-tickets-assets-tables",
+      "featureTitle": "Lay out the two new charts side-by-side in a two-column grid row on the DashboardPage, matching the layout shown in the uploaded screenshot, positioned below the existing KPI cards and above the recent tickets/assets tables.",
+      "files": [
+        "frontend/src/pages/DashboardPage.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    }
+  ]
+}
