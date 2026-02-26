@@ -1,100 +1,91 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add Repairs by Stage and Top Failing Models charts to Dashboard",
+  "title": "Fix dark mode text contrast on widgets and sections",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Add TanStack Query hook for fetching repairs-by-stage aggregation data",
+      "id": "REQ-1",
+      "summary": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled using CSS custom properties and Tailwind utility classes",
       "acceptanceCriteria": [
-        "A useRepairsByStage hook exists that calls the backend aggregation query and returns stage/count data.",
-        "The hook follows the same pattern as existing query hooks in useQueries.ts."
+        "All text inside KPI cards (title, value, description) is readable in dark mode",
+        "Chart labels, axis text, and legend text are visible in dark mode",
+        "Section headings and sub-headings on the Dashboard, Reports, and all other pages are readable in dark mode",
+        "Table cell text, column headers, and filter labels are visible in dark mode",
+        "Badge and status label text is readable in dark mode",
+        "No white-on-white or black-on-black text combinations exist anywhere in dark mode",
+        "Sidebar navigation link text and icons are clearly visible in dark mode",
+        "Header text (app title, user name, role) is clearly visible in dark mode"
       ],
       "file_operations": [
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/index.css",
           "operation": "modify",
-          "description": "Add a useRepairsByStage hook that calls actor.getStageCounts() and returns the StageCount data. Follow the existing pattern of useQuery hooks in this file, using queryKey ['repairsByStage'] and enabling the query only when actor is available."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add TanStack Query hook for fetching top-failing-models aggregation data",
-      "acceptanceCriteria": [
-        "A useTopFailingModels hook exists that calls the backend aggregation query and returns model/count data.",
-        "The hook follows the same pattern as existing query hooks in useQueries.ts."
-      ],
-      "file_operations": [
+          "description": "Review and ensure all CSS custom properties for dark mode (--foreground, --card-foreground, --muted-foreground, --accent-foreground, --popover-foreground) provide high-contrast values against their respective dark backgrounds. Verify dark mode token definitions resolve to light foreground colors (e.g., OKLCH lightness >= 85%) for readability against dark backgrounds."
+        },
         {
-          "path": "frontend/src/hooks/useQueries.ts",
+          "path": "frontend/src/components/KPICard.tsx",
           "operation": "modify",
-          "description": "Add a useTopFailingModels hook that calls actor.getDeviceModelCounts() and returns the ModelCount data. Follow the existing pattern of useQuery hooks in this file, using queryKey ['topFailingModels'] and enabling the query only when actor is available."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Add 'Repairs by Stage' vertical bar chart to DashboardPage with green bars, rotated X-axis labels, and live data",
-      "acceptanceCriteria": [
-        "The 'Repairs by Stage' bar chart is visible on the dashboard page.",
-        "Bars are rendered in green.",
-        "All nine stage names appear on the X-axis, rotated for readability.",
-        "Chart data reflects live counts from actual backend repair ticket records.",
-        "Chart is wrapped in a styled card with the title 'Repairs by Stage'.",
-        "Chart displays a loading skeleton while data is being fetched."
-      ],
-      "file_operations": [
+          "description": "Ensure all text elements (title, value, description) use high-contrast Tailwind text utility classes that resolve correctly in dark mode via CSS custom properties. Replace any hardcoded color classes with theme-aware utilities (e.g., text-foreground, text-muted-foreground, text-card-foreground) to guarantee visibility in dark mode."
+        },
         {
           "path": "frontend/src/components/RepairsByStageChart.tsx",
-          "operation": "create",
-          "description": "Create a new component RepairsByStageChart that uses the useRepairsByStage hook to fetch stage counts. Render a Recharts BarChart with vertical bars in green (#10b981). Transform the StageCount object into an array with keys for all nine stages (awaitingParts, closed, deployed, diagnosing, programming, qaTesting, readyDeploy, received, repairing) and their counts. Configure the X-axis with labels rotated at an angle (e.g., -45 degrees) using textAnchor='end' and angle={-45}. Display a loading skeleton when data is loading. Wrap the chart in a card with the title 'Repairs by Stage' using existing card styling patterns."
-        },
-        {
-          "path": "frontend/src/pages/DashboardPage.tsx",
           "operation": "modify",
-          "description": "Import and integrate the RepairsByStageChart component into the dashboard layout. Position the chart below the existing KPI cards and above the recent records tables, in a new two-column grid row alongside the TopFailingModelsChart (REQ-6). Use a responsive grid layout that stacks charts vertically on smaller screens."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Add 'Top Failing Models' horizontal bar chart to DashboardPage with orange bars and live data",
-      "acceptanceCriteria": [
-        "The 'Top Failing Models' horizontal bar chart is visible on the dashboard page.",
-        "Bars are rendered in orange.",
-        "Model names appear on the Y-axis.",
-        "Chart data reflects live counts from actual backend repair ticket records.",
-        "Chart is wrapped in a styled card with the title 'Top Failing Models'.",
-        "Chart displays a loading skeleton while data is being fetched."
-      ],
-      "file_operations": [
+          "description": "Update Recharts component styling to ensure all chart text (labels, axis text, legend text, tooltips) use high-contrast colors in dark mode. Apply CSS custom property-based text colors or explicit dark mode-compatible Recharts style props to CartesianGrid, XAxis, YAxis, Tooltip, Legend, and Bar label components."
+        },
         {
           "path": "frontend/src/components/TopFailingModelsChart.tsx",
-          "operation": "create",
-          "description": "Create a new component TopFailingModelsChart that uses the useTopFailingModels hook to fetch model counts. Render a Recharts BarChart with layout='vertical' and horizontal bars in orange (#f59e0b). Transform the ModelCount object into an array with keys for the five models (vx680, vx820, m400, carbon10, carbon8) and their counts, sorted by count descending. Configure the Y-axis to display model names (VX680, VX820, M400, Carbon 10, Carbon 8) and the X-axis to show repair counts. Display a loading skeleton when data is loading. Wrap the chart in a card with the title 'Top Failing Models' using existing card styling patterns."
+          "operation": "modify",
+          "description": "Update Recharts component styling to ensure all chart text (labels, axis text, legend text, tooltips) use high-contrast colors in dark mode. Apply CSS custom property-based text colors or explicit dark mode-compatible Recharts style props to CartesianGrid, XAxis, YAxis, Tooltip, and Bar label components."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Ensure app title, user name, user role, and all interactive elements (theme toggle, logout button) use high-contrast text color utilities (text-foreground or text-card-foreground) that remain visible in dark mode. Verify icon colors also resolve correctly."
+        },
+        {
+          "path": "frontend/src/components/Sidebar.tsx",
+          "operation": "modify",
+          "description": "Ensure all navigation link text, icons, user profile display text, and branding footer text use high-contrast color classes (text-sidebar-foreground or text-foreground) that remain clearly visible in dark mode. Verify active/hover states also maintain readability."
+        },
+        {
+          "path": "frontend/src/components/StatusBadge.tsx",
+          "operation": "modify",
+          "description": "Ensure badge text uses high-contrast foreground colors in dark mode for all AssetStatus and RepairOutcome variants. Use Tailwind utilities or CSS custom properties that guarantee readability against badge background colors in both light and dark modes."
         },
         {
           "path": "frontend/src/pages/DashboardPage.tsx",
           "operation": "modify",
-          "description": "Import and integrate the TopFailingModelsChart component into the dashboard layout. Position the chart in the same two-column grid row as the RepairsByStageChart (REQ-5), below the KPI cards and above the recent records tables."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Lay out the two new charts side-by-side in a two-column grid row on the DashboardPage",
-      "acceptanceCriteria": [
-        "Both charts appear in the same horizontal row on the dashboard.",
-        "The layout uses a two-column grid (each chart taking roughly equal width).",
-        "On smaller screens the layout stacks the charts vertically.",
-        "The charts are positioned below KPI cards and above the recent records tables."
-      ],
-      "file_operations": [
+          "description": "Ensure all section headings, sub-headings, table headers, and text content throughout the dashboard page use high-contrast Tailwind text utilities (text-foreground, text-muted-foreground) that resolve correctly in dark mode via CSS custom properties."
+        },
         {
-          "path": "frontend/src/pages/DashboardPage.tsx",
+          "path": "frontend/src/pages/AssetsPage.tsx",
           "operation": "modify",
-          "description": "Create a new section in the DashboardPage below the KPI cards and above the recent records tables. Use a responsive grid layout (e.g., grid grid-cols-1 lg:grid-cols-2 gap-6) to display the RepairsByStageChart and TopFailingModelsChart side-by-side on larger screens and stacked vertically on smaller screens. Ensure both charts have equal width in the grid and proper spacing."
+          "description": "Ensure table headers, table cell text, filter labels, search input text, and all interactive elements use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode. Verify dropdown options and modal text also maintain readability."
+        },
+        {
+          "path": "frontend/src/pages/RepairTicketsPage.tsx",
+          "operation": "modify",
+          "description": "Ensure table headers, table cell text, filter labels, search input text, and all interactive elements use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode. Verify dropdown options and modal text also maintain readability."
+        },
+        {
+          "path": "frontend/src/pages/ReportsPage.tsx",
+          "operation": "modify",
+          "description": "Ensure all section headings, chart titles, axis labels, legend text, table headers, and data cells use high-contrast text utilities that remain visible in dark mode. Update all Recharts components (BarChart, XAxis, YAxis, Tooltip, Legend) to use CSS custom property-based or explicit dark mode-compatible text colors."
+        },
+        {
+          "path": "frontend/src/pages/PartsInventoryPage.tsx",
+          "operation": "modify",
+          "description": "Ensure table headers, table cell text, low-stock alert banner text, filter labels, and all interactive elements use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode."
+        },
+        {
+          "path": "frontend/src/pages/AuditLogPage.tsx",
+          "operation": "modify",
+          "description": "Ensure table headers, table cell text, search input labels, pagination controls, and all text content use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode."
+        },
+        {
+          "path": "frontend/src/pages/SettingsPage.tsx",
+          "operation": "modify",
+          "description": "Ensure all section headings, table headers, table cell text, form labels, and modal dialog text use high-contrast text utilities (text-foreground, text-muted-foreground) that remain visible in dark mode."
         }
       ]
     }

@@ -1,150 +1,41 @@
 {
   "kind": "build_request",
-  "title": "Add Repairs by Stage and Top Failing Models charts to Dashboard",
-  "projectName": "Rebtekx Repair Tracker",
+  "title": "Fix dark mode text contrast on widgets and sections",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add a backend query function that aggregates repair tickets by their current stage/status and returns a count per stage (e.g., Awaiting Parts, Closed, Deployed, Diagnosing, Programming, QA Testing, Ready Deploy, Received, Repairing).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-7"
-        ],
-        "quotes": [
-          "the data should come from real records stored in the backend"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A query function exists in backend/main.mo that iterates all repair tickets and groups them by stage, returning an array of (stage, count) pairs.",
-        "All nine stages are represented in the output (with count 0 if no tickets exist for that stage)."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Add a backend query function that aggregates repair tickets by device model and returns the top failing models sorted by repair count descending (top 5 minimum: VX680, VX820, M400, Carbon 10, Carbon 8).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-7"
-        ],
-        "quotes": [
-          "the data should come from real records stored in the backend"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A query function exists in backend/main.mo that counts repair tickets per device model and returns them sorted by count descending.",
-        "Returns at least the top 5 models by repair frequency."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching repairs-by-stage aggregation data from the new backend query function.",
+      "text": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled. Ensure CSS custom properties and Tailwind utility classes correctly resolve to high-contrast foreground colors against dark backgrounds across all widget and section components.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-6",
-          "msg-7"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A useRepairsByStage hook exists that calls the backend aggregation query and returns stage/count data.",
-        "The hook follows the same pattern as existing query hooks in useQueries.ts."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching top-failing-models aggregation data from the new backend query function.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-6",
-          "msg-7"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A useTopFailingModels hook exists that calls the backend aggregation query and returns model/count data.",
-        "The hook follows the same pattern as existing query hooks in useQueries.ts."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Add a 'Repairs by Stage' vertical bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart. The bars must be green (#10b981 or similar), X-axis labels must show all nine stage names rotated at an angle for readability (matching the screenshot: AWAITING PARTS, CLOSED, DEPLOYED, DIAGNOSING, PROGRAMMING, QA TESTING, READY DEPLOY, RECEIVED, REPAIRING), and the Y-axis must show repair counts. The chart must be displayed in a card with the title 'Repairs by Stage' and pull live data via the useRepairsByStage hook.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-5",
-          "msg-6",
-          "msg-8"
+          "msg-4",
+          "msg-5"
         ],
         "quotes": [
-          "Repairs by Stage: a vertical bar chart (green) showing repair counts across stages"
+          "i notice when dark mode is enabled, I am unable to see the words on the widgets or sections"
         ]
       },
       "acceptanceCriteria": [
-        "The 'Repairs by Stage' bar chart is visible on the dashboard page.",
-        "Bars are rendered in green.",
-        "All nine stage names appear on the X-axis, rotated for readability.",
-        "Chart data reflects live counts from actual backend repair ticket records.",
-        "Chart is wrapped in a styled card with the title 'Repairs by Stage'.",
-        "Chart displays a loading skeleton while data is being fetched."
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "text": "Add a 'Top Failing Models' horizontal bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart with layout='vertical'. The bars must be orange (#f59e0b or similar), Y-axis labels must show model names (VX680, VX820, M400, Carbon 10, Carbon 8), and the X-axis must show repair counts. The chart must be displayed in a card with the title 'Top Failing Models' and pull live data via the useTopFailingModels hook.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-5",
-          "msg-6",
-          "msg-8"
-        ],
-        "quotes": [
-          "Top Failing Models: a horizontal bar chart (orange) showing the top failing device models such as VX680, VX820, M400, Carbon 10, Carbon 8"
-        ]
-      },
-      "acceptanceCriteria": [
-        "The 'Top Failing Models' horizontal bar chart is visible on the dashboard page.",
-        "Bars are rendered in orange.",
-        "Model names appear on the Y-axis.",
-        "Chart data reflects live counts from actual backend repair ticket records.",
-        "Chart is wrapped in a styled card with the title 'Top Failing Models'.",
-        "Chart displays a loading skeleton while data is being fetched."
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "Lay out the two new charts side-by-side in a two-column grid row on the DashboardPage, matching the layout shown in the uploaded screenshot, positioned below the existing KPI cards and above the recent tickets/assets tables.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-8"
-        ],
-        "quotes": [
-          "add these two charts to the existing dashboard"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Both charts appear in the same horizontal row on the dashboard.",
-        "The layout uses a two-column grid (each chart taking roughly equal width).",
-        "On smaller screens the layout stacks the charts vertically.",
-        "The charts are positioned below KPI cards and above the recent records tables."
+        "All text inside KPI cards (title, value, description) is readable in dark mode",
+        "Chart labels, axis text, and legend text are visible in dark mode",
+        "Section headings and sub-headings on the Dashboard, Reports, and all other pages are readable in dark mode",
+        "Table cell text, column headers, and filter labels are visible in dark mode",
+        "Badge and status label text is readable in dark mode",
+        "No white-on-white or black-on-black text combinations exist anywhere in dark mode",
+        "Sidebar navigation link text and icons are clearly visible in dark mode",
+        "Header text (app title, user name, role) is clearly visible in dark mode"
       ]
     }
   ],
   "constraints": [
-    "Do not modify any files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
-    "Use Recharts for all chart rendering, consistent with the existing ReportsPage.tsx implementation.",
-    "Both charts must support dark/light mode using existing Tailwind dark mode class conventions."
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui",
+    "Dark mode fix must use the existing CSS custom property design token system defined in frontend/src/index.css and frontend/index.css — do not introduce hardcoded color values"
   ],
   "nonGoals": [
-    "Adding additional dashboard widgets beyond the two charts specified.",
-    "Modifying existing KPI cards or recent records tables on the dashboard.",
-    "Changing the backend data model or existing repair ticket fields."
+    "Adding new dashboard widgets or features",
+    "Changing the light mode appearance",
+    "Modifying backend logic or data models"
   ],
   "imageRequirements": {
     "required": [],

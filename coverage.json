@@ -1,106 +1,73 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T01:59:28.913Z",
+  "generatedAt": "2026-02-26T04:03:04.658Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 7,
-    "implemented": 5,
+    "total": 1,
+    "implemented": 1,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add a backend query function that aggregates repair tickets by their current stage/status and returns a count per stage (e.g., Awaiting Parts, Closed, Deployed, Diagnosing, Programming, QA Testing, Ready Deploy, Received, Repairing).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-2",
-        "summary": "Add a backend query function that aggregates repair tickets by device model and returns the top failing models sorted by repair count descending (top 5 minimum: VX680, VX820, M400, Carbon 10, Carbon 8).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
-      },
-      {
-        "id": "REQ-3",
-        "summary": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching repairs-by-stage aggregation data from the new backend query function.",
+        "summary": "Fix dark mode contrast so that all text, labels, values, and headings inside KPI cards, chart widgets, and dashboard sections are clearly visible when dark mode is enabled. Ensure CSS custom properties and Tailwind utility classes correctly resolve to high-contrast foreground colors against dark backgrounds across all widget and section components.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-4",
-        "summary": "Add a TanStack Query hook in frontend/src/hooks/useQueries.ts for fetching top-failing-models aggregation data from the new backend query function.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Add a 'Repairs by Stage' vertical bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart. The bars must be green (#10b981 or similar), X-axis labels must show all nine stage names rotated at an angle for readability (matching the screenshot: AWAITING PARTS, CLOSED, DEPLOYED, DIAGNOSING, PROGRAMMING, QA TESTING, READY DEPLOY, RECEIVED, REPAIRING), and the Y-axis must show repair counts. The chart must be displayed in a card with the title 'Repairs by Stage' and pull live data via the useRepairsByStage hook.",
-        "status": "implemented",
-        "plannedFiles": [
+          "frontend/src/index.css",
+          "frontend/src/components/KPICard.tsx",
           "frontend/src/components/RepairsByStageChart.tsx",
-          "frontend/src/pages/DashboardPage.tsx"
+          "frontend/src/components/TopFailingModelsChart.tsx",
+          "frontend/src/components/Header.tsx",
+          "frontend/src/components/Sidebar.tsx",
+          "frontend/src/components/StatusBadge.tsx",
+          "frontend/src/pages/DashboardPage.tsx",
+          "frontend/src/pages/AssetsPage.tsx",
+          "frontend/src/pages/RepairTicketsPage.tsx",
+          "frontend/src/pages/ReportsPage.tsx",
+          "frontend/src/pages/PartsInventoryPage.tsx",
+          "frontend/src/pages/AuditLogPage.tsx",
+          "frontend/src/pages/SettingsPage.tsx"
         ],
         "matchedFiles": [
+          "frontend/src/index.css",
+          "frontend/src/components/KPICard.tsx",
           "frontend/src/components/RepairsByStageChart.tsx",
-          "frontend/src/pages/DashboardPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Add a 'Top Failing Models' horizontal bar chart to the existing DashboardPage (frontend/src/pages/DashboardPage.tsx) using Recharts BarChart with layout='vertical'. The bars must be orange (#f59e0b or similar), Y-axis labels must show model names (VX680, VX820, M400, Carbon 10, Carbon 8), and the X-axis must show repair counts. The chart must be displayed in a card with the title 'Top Failing Models' and pull live data via the useTopFailingModels hook.",
-        "status": "implemented",
-        "plannedFiles": [
           "frontend/src/components/TopFailingModelsChart.tsx",
-          "frontend/src/pages/DashboardPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/TopFailingModelsChart.tsx",
-          "frontend/src/pages/DashboardPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-7",
-        "summary": "Lay out the two new charts side-by-side in a two-column grid row on the DashboardPage, matching the layout shown in the uploaded screenshot, positioned below the existing KPI cards and above the recent tickets/assets tables.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/DashboardPage.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/DashboardPage.tsx"
+          "frontend/src/components/Header.tsx",
+          "frontend/src/components/Sidebar.tsx",
+          "frontend/src/components/StatusBadge.tsx",
+          "frontend/src/pages/DashboardPage.tsx",
+          "frontend/src/pages/AssetsPage.tsx",
+          "frontend/src/pages/RepairTicketsPage.tsx",
+          "frontend/src/pages/ReportsPage.tsx",
+          "frontend/src/pages/PartsInventoryPage.tsx",
+          "frontend/src/pages/AuditLogPage.tsx",
+          "frontend/src/pages/SettingsPage.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
-    "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/backend.d.ts",
-    "frontend/src/backend.ts",
-    "frontend/src/components/NewRepairTicketForm.tsx",
+    "frontend/src/components/Header.tsx",
+    "frontend/src/components/KPICard.tsx",
     "frontend/src/components/RepairsByStageChart.tsx",
+    "frontend/src/components/Sidebar.tsx",
+    "frontend/src/components/StatusBadge.tsx",
     "frontend/src/components/TopFailingModelsChart.tsx",
-    "frontend/src/declarations/backend.did.d.ts",
-    "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/index.css",
+    "frontend/src/pages/AssetsPage.tsx",
+    "frontend/src/pages/AuditLogPage.tsx",
     "frontend/src/pages/DashboardPage.tsx",
+    "frontend/src/pages/PartsInventoryPage.tsx",
+    "frontend/src/pages/RepairTicketsPage.tsx",
+    "frontend/src/pages/ReportsPage.tsx",
+    "frontend/src/pages/SettingsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

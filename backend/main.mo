@@ -12,10 +12,10 @@ import Principal "mo:core/Principal";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Migration "migration";
+
 
 // Enables explicit migration
-(with migration = Migration.run)
+
 actor {
   public type AssetStatus = {
     #inField;
