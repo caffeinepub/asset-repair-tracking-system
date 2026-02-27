@@ -32,6 +32,7 @@ export interface Part {
     quantityInStock: bigint;
     partName: string;
     compatibleModel: string;
+    image?: Uint8Array;
 }
 export interface ModelCount {
     carbon10: bigint;
@@ -172,6 +173,7 @@ export interface backendInterface {
     filterRepairs(model: string | null, client: string | null, startDate: bigint | null, endDate: bigint | null, faultKeyword: string | null): Promise<Array<RepairTicket>>;
     getAsset(serialNumber: string): Promise<Asset>;
     getAuditTrail(entityId: string | null, startDate: bigint | null, endDate: bigint | null): Promise<Array<AuditEntry>>;
+    getCallerRole(): Promise<UserRole>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getConfig(): Promise<Config>;
@@ -191,6 +193,7 @@ export interface backendInterface {
     getUser(userId: string): Promise<AppUser>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getUsers(): Promise<Array<ManagedUserPublic>>;
+    grantAdminRole(userToPromote: Principal): Promise<void>;
     importAssetBatch(serialNumbers: Array<string>): Promise<BatchImportResult>;
     isCallerAdmin(): Promise<boolean>;
     listAllRepairs(): Promise<Array<RepairTicket>>;
@@ -200,6 +203,7 @@ export interface backendInterface {
     listUsers(): Promise<Array<AppUser>>;
     login(username: string, password: string): Promise<LoginResult>;
     renameClient(clientId: string, newName: string): Promise<Result>;
+    revokeAdminRole(adminToDemote: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     searchBySerial(queryText: string): Promise<Array<Asset>>;
     updateAsset(serialNumber: string, updatedAsset: Asset): Promise<void>;

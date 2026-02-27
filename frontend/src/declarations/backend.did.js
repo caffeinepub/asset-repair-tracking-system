@@ -38,6 +38,7 @@ export const Part = IDL.Record({
   'quantityInStock' : IDL.Nat,
   'partName' : IDL.Text,
   'compatibleModel' : IDL.Text,
+  'image' : IDL.Opt(IDL.Vec(IDL.Nat8)),
 });
 export const AppUserRole = IDL.Variant({
   'supervisor' : IDL.Null,
@@ -168,6 +169,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(AuditEntry)],
       ['query'],
     ),
+  'getCallerRole' : IDL.Func([], [UserRole], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getConfig' : IDL.Func([], [Config], ['query']),
@@ -215,6 +217,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getUsers' : IDL.Func([], [IDL.Vec(ManagedUserPublic)], ['query']),
+  'grantAdminRole' : IDL.Func([IDL.Principal], [], []),
   'importAssetBatch' : IDL.Func([IDL.Vec(IDL.Text)], [BatchImportResult], []),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'listAllRepairs' : IDL.Func([], [IDL.Vec(RepairTicket)], ['query']),
@@ -224,6 +227,7 @@ export const idlService = IDL.Service({
   'listUsers' : IDL.Func([], [IDL.Vec(AppUser)], ['query']),
   'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
   'renameClient' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
+  'revokeAdminRole' : IDL.Func([IDL.Principal], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'searchBySerial' : IDL.Func([IDL.Text], [IDL.Vec(Asset)], ['query']),
   'updateAsset' : IDL.Func([IDL.Text, Asset], [], []),
@@ -270,6 +274,7 @@ export const idlFactory = ({ IDL }) => {
     'quantityInStock' : IDL.Nat,
     'partName' : IDL.Text,
     'compatibleModel' : IDL.Text,
+    'image' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const AppUserRole = IDL.Variant({
     'supervisor' : IDL.Null,
@@ -404,6 +409,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(AuditEntry)],
         ['query'],
       ),
+    'getCallerRole' : IDL.Func([], [UserRole], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getConfig' : IDL.Func([], [Config], ['query']),
@@ -451,6 +457,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getUsers' : IDL.Func([], [IDL.Vec(ManagedUserPublic)], ['query']),
+    'grantAdminRole' : IDL.Func([IDL.Principal], [], []),
     'importAssetBatch' : IDL.Func([IDL.Vec(IDL.Text)], [BatchImportResult], []),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'listAllRepairs' : IDL.Func([], [IDL.Vec(RepairTicket)], ['query']),
@@ -460,6 +467,7 @@ export const idlFactory = ({ IDL }) => {
     'listUsers' : IDL.Func([], [IDL.Vec(AppUser)], ['query']),
     'login' : IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
     'renameClient' : IDL.Func([IDL.Text, IDL.Text], [Result], []),
+    'revokeAdminRole' : IDL.Func([IDL.Principal], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'searchBySerial' : IDL.Func([IDL.Text], [IDL.Vec(Asset)], ['query']),
     'updateAsset' : IDL.Func([IDL.Text, Asset], [], []),

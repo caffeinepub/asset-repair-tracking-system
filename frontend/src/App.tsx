@@ -1,18 +1,11 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  createRouter,
-  createRoute,
-  createRootRoute,
-  RouterProvider,
-  Outlet,
-  redirect,
-} from '@tanstack/react-router';
 import { ThemeProvider } from 'next-themes';
+import { createRouter, RouterProvider, createRootRoute, createRoute, Outlet } from '@tanstack/react-router';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import LoginScreen from './components/LoginScreen';
 import Layout from './components/Layout';
+import LoginScreen from './components/LoginScreen';
 import DashboardPage from './pages/DashboardPage';
 import AssetsPage from './pages/AssetsPage';
 import RepairTicketsPage from './pages/RepairTicketsPage';
@@ -24,13 +17,22 @@ import SettingsPage from './pages/SettingsPage';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 1000 * 60 * 5,
       retry: 1,
-      staleTime: 30_000,
     },
   },
 });
 
-// Root route with layout
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
+
+  return <RouterProvider router={router} />;
+}
+
 const rootRoute = createRootRoute({
   component: () => (
     <Layout>
@@ -39,7 +41,7 @@ const rootRoute = createRootRoute({
   ),
 });
 
-const dashboardRoute = createRoute({
+const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: DashboardPage,
@@ -51,15 +53,15 @@ const assetsRoute = createRoute({
   component: AssetsPage,
 });
 
-const repairTicketsRoute = createRoute({
+const repairsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/repair-tickets',
+  path: '/repairs',
   component: RepairTicketsPage,
 });
 
-const partsInventoryRoute = createRoute({
+const partsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/parts-inventory',
+  path: '/parts',
   component: PartsInventoryPage,
 });
 
@@ -69,9 +71,9 @@ const reportsRoute = createRoute({
   component: ReportsPage,
 });
 
-const auditLogRoute = createRoute({
+const auditRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/audit-log',
+  path: '/audit',
   component: AuditLogPage,
 });
 
@@ -82,32 +84,16 @@ const settingsRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  dashboardRoute,
+  indexRoute,
   assetsRoute,
-  repairTicketsRoute,
-  partsInventoryRoute,
+  repairsRoute,
+  partsRoute,
   reportsRoute,
-  auditLogRoute,
+  auditRoute,
   settingsRoute,
 ]);
 
 const router = createRouter({ routeTree });
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router;
-  }
-}
-
-function AppContent() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <LoginScreen />;
-  }
-
-  return <RouterProvider router={router} />;
-}
 
 export default function App() {
   return (

@@ -5,16 +5,17 @@ import Array "mo:core/Array";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Nat "mo:core/Nat";
+import Nat32 "mo:core/Nat32";
+import Char "mo:core/Char";
 import Int "mo:core/Int";
 import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
 import Map "mo:core/Map";
+import Blob "mo:core/Blob";
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Migration "migration";
 
 // Enables explicit migration
-(with migration = Migration.run)
 actor {
   public type AssetStatus = {
     #inField;
@@ -69,6 +70,7 @@ actor {
     compatibleModel : Text;
     quantityInStock : Nat;
     lowStockThreshold : Nat;
+    image : ?Blob;
   };
 
   public type AuditEntry = {
@@ -148,7 +150,8 @@ actor {
     discriminator = "backend-with-configs";
   };
 
-  public query ({ caller }) func getConfig() : async Config {
+  // Config is public information, no auth check needed
+  public query func getConfig() : async Config {
     config;
   };
 
@@ -166,15 +169,15 @@ actor {
 
   // ── Managed users (implementation plan) ──────────────────────────────────
   let managedUsers = Map.empty<Nat, ManagedUser>();
-  stable var nextUserId : Nat = 1;
-  stable var managedUsersSeeded : Bool = false;
+  var nextUserId : Nat = 1;
+  var managedUsersSeeded : Bool = false;
 
   // Simple hash function for passwords (deterministic)
   func hashPassword(password : Text) : Text {
     // Simple deterministic hash using character codes
     var hash : Nat = 5381;
     for (c in password.chars()) {
-      let code = Nat32.toNat(Char.toNat32(c));
+      let code = c.toNat32().toNat();
       hash := ((hash * 33) + code) % 4294967296;
     };
     "hash_" # hash.toText();
@@ -563,6 +566,7 @@ actor {
             compatibleModel = existingPart.compatibleModel;
             quantityInStock = newQty;
             lowStockThreshold = existingPart.lowStockThreshold;
+            image = existingPart.image;
           };
           parts.add(partUsed.partNumber, updatedPart);
           addAuditEntry("Part", partUsed.partNumber, caller.toText(), "Stock decremented by " # partUsed.qty.toText() # " for repair ticket " # ticket.ticketId);
@@ -765,6 +769,7 @@ actor {
           compatibleModel = existingPart.compatibleModel;
           quantityInStock = newQty;
           lowStockThreshold = existingPart.lowStockThreshold;
+          image = existingPart.image;
         };
         parts.add(partNumber, updatedPart);
         addAuditEntry(
@@ -1325,5 +1330,37 @@ actor {
       };
     };
     { vx680; vx820; m400; carbon10; carbon8 };
+  };
+
+  // ── Authorization Helper Function ─────────────────────────────────────────
+  // Returns the caller's role - no auth check needed, callers can always query their own role
+  public query ({ caller }) func getCallerRole() : async AccessControl.UserRole {
+    AccessControl.getUserRole(accessControlState, caller);
+  };
+
+  // ── Admin role management ────────────────────────────────────────────────
+
+  public shared ({ caller }) func grantAdminRole(userToPromote : Principal) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can grant admin role");
+    };
+    AccessControl.assignRole(
+      accessControlState,
+      caller,
+      userToPromote,
+      #admin,
+    );
+  };
+
+  public shared ({ caller }) func revokeAdminRole(adminToDemote : Principal) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can revoke admin role");
+    };
+    AccessControl.assignRole(
+      accessControlState,
+      caller,
+      adminToDemote,
+      #user,
+    );
   };
 };

@@ -27,7 +27,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Plus, Search, Upload, Eye, Pencil, Trash2, Loader2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Plus,
+  Search,
+  Upload,
+  Eye,
+  Pencil,
+  Trash2,
+  Loader2,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown,
+} from 'lucide-react';
 import AddAssetForm from '../components/AddAssetForm';
 import EditAssetForm from '../components/EditAssetForm';
 import { AssetDetailModal } from '../components/AssetDetailModal';
@@ -81,6 +99,7 @@ export default function AssetsPage() {
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [parsedSerials, setParsedSerials] = useState<string[]>([]);
   const [importResult, setImportResult] = useState<BatchImportResult | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: assets = [], isLoading } = useQuery<Asset[]>({
     queryKey: ['assets'],
@@ -153,6 +172,40 @@ export default function AssetsPage() {
     }
   };
 
+  const handleExportCSV = async () => {
+    if (filtered.length === 0) {
+      toast.error('No assets to export.');
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const { exportAssetsAsCSV } = await import('../utils/csvExport');
+      exportAssetsAsCSV(filtered);
+      toast.success(`Exported ${filtered.length} asset(s) as CSV.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to export CSV.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (filtered.length === 0) {
+      toast.error('No assets to export.');
+      return;
+    }
+    try {
+      setIsExporting(true);
+      const { exportAssetsAsExcel } = await import('../utils/csvExport');
+      await exportAssetsAsExcel(filtered);
+      toast.success(`Exported ${filtered.length} asset(s) as Excel.`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to export Excel.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="p-6 space-y-6">
@@ -161,29 +214,57 @@ export default function AssetsPage() {
             <h1 className="text-2xl font-bold text-foreground">Assets</h1>
             <p className="text-muted-foreground text-sm mt-1">Manage all registered assets</p>
           </div>
-          {isAdmin && (
-            <div className="flex items-center gap-2">
-              <label htmlFor="import-file">
-                <Button variant="outline" size="sm" asChild>
-                  <span className="cursor-pointer">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import
-                  </span>
+          <div className="flex items-center gap-2">
+            {/* Export button — available to all authenticated users */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isExporting}>
+                  {isExporting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Export
+                  <ChevronDown className="w-3.5 h-3.5 ml-1 opacity-70" />
                 </Button>
-              </label>
-              <input
-                id="import-file"
-                type="file"
-                accept=".xlsx,.csv,.txt"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Button size="sm" onClick={() => setAddOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Asset
-              </Button>
-            </div>
-          )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportExcel} className="cursor-pointer">
+                  <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                  Export as Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                  <FileText className="w-4 h-4 mr-2 text-blue-500" />
+                  Export as CSV (.csv)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Import & Add Asset — admin only */}
+            {isAdmin && (
+              <>
+                <label htmlFor="import-file">
+                  <Button variant="outline" size="sm" asChild>
+                    <span className="cursor-pointer">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="import-file"
+                  type="file"
+                  accept=".xlsx,.csv,.txt"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button size="sm" onClick={() => setAddOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Asset
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Filters */}

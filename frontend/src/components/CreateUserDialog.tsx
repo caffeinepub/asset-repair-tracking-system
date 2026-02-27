@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,68 +17,77 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { useCreateUser } from '../hooks/useQueries';
 import { ManagedUserRole } from '../backend';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateUser: (username: string, password: string, role: ManagedUserRole) => Promise<void>;
 }
 
-export default function CreateUserDialog({ open, onOpenChange, onCreateUser }: CreateUserDialogProps) {
+export default function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<ManagedUserRole>(ManagedUserRole.User);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const [error, setError] = useState<string | null>(null);
 
-  const validate = () => {
-    const newErrors: { username?: string; password?: string } = {};
-    if (!username.trim()) newErrors.username = 'Username is required.';
-    if (!password.trim()) newErrors.password = 'Password is required.';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const createUserMutation = useCreateUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
-    setIsLoading(true);
+    setError(null);
+
+    if (!username.trim()) {
+      setError('Username is required');
+      return;
+    }
+    if (!password.trim()) {
+      setError('Password is required');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     try {
-      await onCreateUser(username.trim(), password, role);
-      toast.success('User created successfully.');
+      await createUserMutation.mutateAsync({ username: username.trim(), password, role });
+      toast.success(`User "${username}" created successfully`);
       setUsername('');
       setPassword('');
       setRole(ManagedUserRole.User);
-      setErrors({});
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create user.');
-    } finally {
-      setIsLoading(false);
+      const msg = err?.message || 'Failed to create user';
+      setError(msg);
+      toast.error(msg);
     }
   };
 
   const handleClose = () => {
-    if (!isLoading) {
-      setUsername('');
-      setPassword('');
-      setRole(ManagedUserRole.User);
-      setErrors({});
-      onOpenChange(false);
-    }
+    setUsername('');
+    setPassword('');
+    setRole(ManagedUserRole.User);
+    setError(null);
+    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
-          <DialogDescription>Add a new user account to the system.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="new-username">Username</Label>
             <Input
@@ -86,10 +95,10 @@ export default function CreateUserDialog({ open, onOpenChange, onCreateUser }: C
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter username"
-              disabled={isLoading}
+              autoComplete="off"
             />
-            {errors.username && <p className="text-destructive text-xs">{errors.username}</p>}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="new-password">Password</Label>
             <Input
@@ -97,33 +106,30 @@ export default function CreateUserDialog({ open, onOpenChange, onCreateUser }: C
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              disabled={isLoading}
+              placeholder="Enter password (min 6 characters)"
+              autoComplete="new-password"
             />
-            {errors.password && <p className="text-destructive text-xs">{errors.password}</p>}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="new-role">Role</Label>
-            <Select
-              value={role}
-              onValueChange={(v) => setRole(v as ManagedUserRole)}
-              disabled={isLoading}
-            >
+            <Select value={role} onValueChange={(v) => setRole(v as ManagedUserRole)}>
               <SelectTrigger id="new-role">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ManagedUserRole.Admin}>Admin</SelectItem>
                 <SelectItem value={ManagedUserRole.User}>User</SelectItem>
+                <SelectItem value={ManagedUserRole.Admin}>Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : 'Create User'}
+            <Button type="submit" disabled={createUserMutation.isPending}>
+              {createUserMutation.isPending ? 'Creating...' : 'Create User'}
             </Button>
           </DialogFooter>
         </form>

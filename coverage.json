@@ -1,110 +1,73 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T06:42:48.941Z",
+  "generatedAt": "2026-02-26T19:27:32.477Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 7,
-    "implemented": 5,
+    "total": 4,
+    "implemented": 3,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Add an AppUser data model to the backend with fields: id (Nat), username (Text), passwordHash (Text), and role (variant { Admin; User }). Store users in a stable HashMap. Seed one default admin account (username: 'admin', password: 'admin123') on first deploy if no users exist.",
+        "summary": "Implement industry-standard RBAC in the backend: the first principal to register is automatically assigned the admin role and stored in stable state. All subsequent admin authorization checks must compare the caller's Internet Identity principal against the stored admin principal list. Remove or replace any hardcoded principal or password-based admin checks that currently cause the 'Unauthorized: Only admins can create users' error.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
         "id": "REQ-2",
-        "summary": "Expose backend functions for user management: login(username, password) returning a session token or error; getUsers() returning all users (admin only); createUser(username, password, role) (admin only); updateUser(id, username, password, role) (admin only); deleteUser(id) (admin only).",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "summary": "Update all frontend API calls in SettingsPage.tsx, CreateUserDialog.tsx, EditUserDialog.tsx, and any related hooks in useQueries.ts to pass the authenticated Internet Identity principal through the actor when invoking user management backend functions. Ensure the actor used for these calls is the authenticated actor (not anonymous) so the backend receives the correct caller principal.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/SettingsPage.tsx",
+          "frontend/src/components/CreateUserDialog.tsx",
+          "frontend/src/components/EditUserDialog.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/SettingsPage.tsx",
+          "frontend/src/components/CreateUserDialog.tsx",
+          "frontend/src/components/EditUserDialog.tsx"
+        ]
       },
       {
         "id": "REQ-3",
-        "summary": "Replace the Internet Identity authentication gate in the frontend with a username/password login screen. The login screen should show the app logo/name, a username field, a password field, and a Sign In button. On successful authentication, store the logged-in user (id, username, role) in React context/state accessible app-wide.",
+        "summary": "Implement a backend function that allows the current admin to grant admin role to other registered principals, and another to revoke admin role. Expose these in the frontend SettingsPage under user management so admins can promote or demote users.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/contexts/AuthContext.tsx",
-          "frontend/src/components/LoginScreen.tsx",
-          "frontend/src/App.tsx",
-          "frontend/src/main.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/SettingsPage.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/contexts/AuthContext.tsx",
-          "frontend/src/components/LoginScreen.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/pages/SettingsPage.tsx"
         ]
       },
       {
         "id": "REQ-4",
-        "summary": "Add a Settings page accessible only to admin users. Add a 'Settings' navigation link in the Sidebar that is only rendered when the logged-in user has the Admin role. Regular users should not see or be able to navigate to the Settings page.",
+        "summary": "Add a backend query function that returns the current caller's role and admin status based on their Internet Identity principal. Use this in the frontend AuthContext or Header to correctly display the admin role badge and control access to admin-only UI sections without relying solely on locally stored session data.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/pages/SettingsPage.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/Header.tsx",
           "frontend/src/components/Sidebar.tsx",
-          "frontend/src/App.tsx"
+          "frontend/src/contexts/AuthContext.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/pages/SettingsPage.tsx",
+          "frontend/src/hooks/useQueries.ts",
+          "frontend/src/components/Header.tsx",
           "frontend/src/components/Sidebar.tsx",
-          "frontend/src/App.tsx"
-        ]
-      },
-      {
-        "id": "REQ-5",
-        "summary": "Build the Settings page with a User Management section. Display a table of all users showing their username and role. Provide buttons to: (1) Create a new user (opens a dialog with username, password, and role fields), (2) Edit an existing user (opens a pre-filled dialog for username, password, and role), (3) Delete a user (with a confirmation prompt). Prevent deletion of the currently logged-in admin user.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/CreateUserDialog.tsx",
-          "frontend/src/components/EditUserDialog.tsx",
-          "frontend/src/pages/SettingsPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/CreateUserDialog.tsx",
-          "frontend/src/components/EditUserDialog.tsx",
-          "frontend/src/pages/SettingsPage.tsx",
-          "frontend/src/hooks/useQueries.ts"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Enforce role-based access control across the app. Regular users (role: User) should not see the Settings sidebar link, cannot access admin-only pages, and all admin-only action buttons (add/edit/delete) on AssetsPage, PartsInventoryPage, RepairTicketsPage, etc. remain gated. Base access checks on the locally stored logged-in user role instead of the previous Internet Identity-based role check.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/AssetsPage.tsx",
-          "frontend/src/pages/PartsInventoryPage.tsx",
-          "frontend/src/pages/RepairTicketsPage.tsx",
-          "frontend/src/components/RepairTicketDetailModal.tsx",
-          "frontend/src/components/AssetDetailModal.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/AssetsPage.tsx",
-          "frontend/src/pages/PartsInventoryPage.tsx",
-          "frontend/src/pages/RepairTicketsPage.tsx"
-        ]
-      },
-      {
-        "id": "REQ-7",
-        "summary": "Update the Header component to display the logged-in user's username and role, and replace the Internet Identity logout button with a logout action that clears the local session and returns the user to the login screen.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/components/Header.tsx"
-        ],
-        "matchedFiles": [
-          "frontend/src/components/Header.tsx"
+          "frontend/src/contexts/AuthContext.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
@@ -112,19 +75,16 @@
     "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/ClientRegistrySection.tsx",
     "frontend/src/components/CreateUserDialog.tsx",
     "frontend/src/components/EditUserDialog.tsx",
     "frontend/src/components/Header.tsx",
-    "frontend/src/components/Layout.tsx",
     "frontend/src/components/LoginScreen.tsx",
     "frontend/src/components/Sidebar.tsx",
     "frontend/src/contexts/AuthContext.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AssetsPage.tsx",
-    "frontend/src/pages/PartsInventoryPage.tsx",
-    "frontend/src/pages/RepairTicketsPage.tsx",
     "frontend/src/pages/SettingsPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",

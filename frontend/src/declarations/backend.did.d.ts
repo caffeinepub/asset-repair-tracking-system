@@ -73,6 +73,7 @@ export interface Part {
   'quantityInStock' : bigint,
   'partName' : string,
   'compatibleModel' : string,
+  'image' : [] | [Uint8Array],
 }
 export interface PartReplaced {
   'qty' : bigint,
@@ -147,6 +148,7 @@ export interface _SERVICE {
     [[] | [string], [] | [bigint], [] | [bigint]],
     Array<AuditEntry>
   >,
+  'getCallerRole' : ActorMethod<[], UserRole>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getConfig' : ActorMethod<[], Config>,
@@ -175,6 +177,7 @@ export interface _SERVICE {
   'getUser' : ActorMethod<[string], AppUser>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUsers' : ActorMethod<[], Array<ManagedUserPublic>>,
+  'grantAdminRole' : ActorMethod<[Principal], undefined>,
   'importAssetBatch' : ActorMethod<[Array<string>], BatchImportResult>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'listAllRepairs' : ActorMethod<[], Array<RepairTicket>>,
@@ -184,6 +187,7 @@ export interface _SERVICE {
   'listUsers' : ActorMethod<[], Array<AppUser>>,
   'login' : ActorMethod<[string, string], LoginResult>,
   'renameClient' : ActorMethod<[string, string], Result>,
+  'revokeAdminRole' : ActorMethod<[Principal], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'searchBySerial' : ActorMethod<[string], Array<Asset>>,
   'updateAsset' : ActorMethod<[string, Asset], undefined>,

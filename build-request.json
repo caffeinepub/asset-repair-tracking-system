@@ -1,153 +1,106 @@
 {
   "kind": "build_request",
-  "title": "Add login authentication, role-based access control, and admin user management",
+  "title": "Fix RBAC: Principal-based admin authorization for user management",
   "projectName": "Asset Repair Tracker",
   "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Add an AppUser data model to the backend with fields: id (Nat), username (Text), passwordHash (Text), and role (variant { Admin; User }). Store users in a stable HashMap. Seed one default admin account (username: 'admin', password: 'admin123') on first deploy if no users exist.",
+      "text": "Implement industry-standard RBAC in the backend: the first principal to register is automatically assigned the admin role and stored in stable state. All subsequent admin authorization checks must compare the caller's Internet Identity principal against the stored admin principal list. Remove or replace any hardcoded principal or password-based admin checks that currently cause the 'Unauthorized: Only admins can create users' error.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-10"
+          "msg-8",
+          "msg-10",
+          "msg-12"
         ],
         "quotes": [
-          "create users' names and passwords for users and admin"
+          "Unauthorized: Only admins can create users",
+          "First registered user becomes admin",
+          "Principal-based authentication — admin checks are done by comparing the caller's Internet Identity principal against the stored admin principal(s)."
         ]
       },
       "acceptanceCriteria": [
-        "AppUser type exists with id, username, passwordHash, and role fields",
-        "Users are stored in stable state that survives upgrades",
-        "A default admin user exists after first deploy"
+        "The first Internet Identity principal to call a registration or initialization function is stored as the admin in stable state.",
+        "All backend functions that require admin privileges (e.g., createUser, deleteUser, updateUser) check caller principal against the stored admin principal(s).",
+        "A signed-in admin principal can successfully create, edit, and delete managed users without receiving an 'Unauthorized' error.",
+        "Non-admin principals are correctly rejected with an authorization error when attempting admin-only operations.",
+        "No hardcoded principal IDs or password-based admin checks remain in the authorization flow."
       ]
     },
     {
       "id": "REQ-2",
-      "text": "Expose backend functions for user management: login(username, password) returning a session token or error; getUsers() returning all users (admin only); createUser(username, password, role) (admin only); updateUser(id, username, password, role) (admin only); deleteUser(id) (admin only).",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-10"
-        ],
-        "quotes": [
-          "create users' names and passwords for users and admin"
-        ]
-      },
-      "acceptanceCriteria": [
-        "login() returns a success result with user info on valid credentials, error on invalid",
-        "getUsers(), createUser(), updateUser(), deleteUser() are gated to admin callers only",
-        "Passwords are stored hashed (using a simple deterministic hash, not plaintext)"
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Replace the Internet Identity authentication gate in the frontend with a username/password login screen. The login screen should show the app logo/name, a username field, a password field, and a Sign In button. On successful authentication, store the logged-in user (id, username, role) in React context/state accessible app-wide.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-9",
-          "msg-10"
-        ],
-        "quotes": [
-          "Authentication: This is more of an internal management list",
-          "Login screen with username + password authentication"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Unauthenticated users see only the login screen",
-        "Incorrect credentials show an error message",
-        "Successful login navigates to the dashboard",
-        "Logged-in user info (name, role) is accessible throughout the app"
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add a Settings page accessible only to admin users. Add a 'Settings' navigation link in the Sidebar that is only rendered when the logged-in user has the Admin role. Regular users should not see or be able to navigate to the Settings page.",
+      "text": "Update all frontend API calls in SettingsPage.tsx, CreateUserDialog.tsx, EditUserDialog.tsx, and any related hooks in useQueries.ts to pass the authenticated Internet Identity principal through the actor when invoking user management backend functions. Ensure the actor used for these calls is the authenticated actor (not anonymous) so the backend receives the correct caller principal.",
       "target": "frontend",
       "source": {
         "messageIds": [
           "msg-8",
-          "msg-9"
+          "msg-10"
         ],
         "quotes": [
-          "Settings menu location: Where should this settings menu appear — in a sidebar",
-          "should it only be accessible to admins? yes"
+          "Unauthorized: Only admins can create users",
+          "the Internet Identity principal must be correctly passed through the actor/agent setup and recognized by backend authorization checks"
         ]
       },
       "acceptanceCriteria": [
-        "Settings link appears in the sidebar only for admin users",
-        "Regular users cannot access /settings directly (redirected away)",
-        "Admin users can navigate to the Settings page"
+        "All user management mutations (create, edit, delete user) in useQueries.ts use the authenticated actor from useActor hook.",
+        "The actor passed to SettingsPage and user management dialogs is the authenticated actor tied to the current Internet Identity session.",
+        "After signing in as admin, submitting the Create User form succeeds without an 'Unauthorized' error.",
+        "The actor is not the anonymous actor when admin-protected backend calls are made."
       ]
     },
     {
-      "id": "REQ-5",
-      "text": "Build the Settings page with a User Management section. Display a table of all users showing their username and role. Provide buttons to: (1) Create a new user (opens a dialog with username, password, and role fields), (2) Edit an existing user (opens a pre-filled dialog for username, password, and role), (3) Delete a user (with a confirmation prompt). Prevent deletion of the currently logged-in admin user.",
-      "target": "frontend",
+      "id": "REQ-3",
+      "text": "Implement a backend function that allows the current admin to grant admin role to other registered principals, and another to revoke admin role. Expose these in the frontend SettingsPage under user management so admins can promote or demote users.",
+      "target": "both",
       "source": {
         "messageIds": [
           "msg-10"
         ],
         "quotes": [
-          "User management inside Settings: create, view, edit, and delete users with name, password, and role (admin or regular user)"
+          "Admin can grant/revoke roles — admins can promote other users to admin or create users with specific roles."
         ]
       },
       "acceptanceCriteria": [
-        "User table lists all users with username and role columns",
-        "Create user dialog validates that username and password are non-empty",
-        "Edit user dialog pre-fills existing username and role",
-        "Delete prompts for confirmation before removing",
-        "Logged-in admin cannot delete their own account"
+        "Backend exposes a grantAdmin(principal) function callable only by existing admins.",
+        "Backend exposes a revokeAdmin(principal) function callable only by existing admins.",
+        "SettingsPage displays role management controls for existing users visible only to admins.",
+        "Granting or revoking admin role is reflected immediately in the user list."
       ]
     },
     {
-      "id": "REQ-6",
-      "text": "Enforce role-based access control across the app. Regular users (role: User) should not see the Settings sidebar link, cannot access admin-only pages, and all admin-only action buttons (add/edit/delete) on AssetsPage, PartsInventoryPage, RepairTicketsPage, etc. remain gated. Base access checks on the locally stored logged-in user role instead of the previous Internet Identity-based role check.",
-      "target": "frontend",
+      "id": "REQ-4",
+      "text": "Add a backend query function that returns the current caller's role and admin status based on their Internet Identity principal. Use this in the frontend AuthContext or Header to correctly display the admin role badge and control access to admin-only UI sections without relying solely on locally stored session data.",
+      "target": "both",
       "source": {
         "messageIds": [
-          "msg-9"
-        ],
-        "quotes": [
-          "Admins should have special privileges within the app, while regular users have limited access"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Admin-only UI elements are hidden for regular users",
-        "Role gating works based on the username/password login session role",
-        "Regular users can view data but cannot create, edit, or delete records"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "text": "Update the Header component to display the logged-in user's username and role, and replace the Internet Identity logout button with a logout action that clears the local session and returns the user to the login screen.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
+          "msg-8",
           "msg-10"
         ],
         "quotes": [
-          "Login screen with username + password authentication"
+          "Is there a way in the app to view or verify which principal is currently recognized as admin",
+          "Principal-based authentication — admin checks are done by comparing the caller's Internet Identity principal"
         ]
       },
       "acceptanceCriteria": [
-        "Header shows the current user's name and role badge",
-        "Logout button clears session and shows the login screen",
-        "No Internet Identity references remain visible in the UI"
+        "Backend exposes a getMyRole() query that returns the caller's role based on their principal.",
+        "Frontend calls getMyRole() after login to verify the authenticated user's actual role from the backend.",
+        "The admin role badge in the Header reflects the principal-verified role.",
+        "Admin-only navigation items (e.g., Settings in Sidebar) are shown/hidden based on the principal-verified role."
       ]
     }
   ],
   "constraints": [
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts or frontend/src/hooks/useActor.ts",
-    "Keep all backend logic in a single Motoko actor in backend/main.mo",
-    "Preserve all existing features: assets, repair tickets, parts inventory, audit log, reports, clients"
+    "All Motoko logic must remain in the single backend/main.mo actor file.",
+    "Do not edit files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui.",
+    "Admin role assignment must be dynamic (stored in stable state) — no hardcoded principal IDs.",
+    "Generate migration.mo to preserve existing stable state when upgrading backend state schema."
   ],
   "nonGoals": [
-    "Full cryptographic password hashing (a deterministic simple hash is acceptable)",
-    "Session token expiry or refresh mechanisms",
-    "Multi-factor authentication",
-    "Email-based password reset"
+    "Changing the visual design or theme of the application.",
+    "Adding new asset, repair ticket, or parts inventory features.",
+    "Implementing OAuth or third-party authentication providers.",
+    "Replacing Internet Identity with any other authentication mechanism."
   ],
   "imageRequirements": {
     "required": [],

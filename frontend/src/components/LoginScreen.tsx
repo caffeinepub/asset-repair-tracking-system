@@ -5,15 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { AlertCircle, Loader2, Lock, User } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle, Shield } from 'lucide-react';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
-  const { actor } = useActor();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+
+  const { login, isLoggingIn } = useAuth();
+  const { actor } = useActor();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,106 +22,122 @@ export default function LoginScreen() {
       setError('Please enter both username and password.');
       return;
     }
+    if (!actor) {
+      setError('System is initializing. Please wait a moment and try again.');
+      return;
+    }
     setError('');
-    setIsLoading(true);
     try {
-      await login(username.trim(), password, actor);
+      // Pass actor as first argument to match AuthContext.login(actor, username, password)
+      await login(actor, username.trim(), password);
     } catch (err: any) {
-      setError(err.message || 'Invalid username or password.');
-    } finally {
-      setIsLoading(false);
+      const msg = err?.message || 'Login failed. Please check your credentials.';
+      if (msg.includes('Invalid username') || msg.includes('password')) {
+        setError('Invalid username or password.');
+      } else if (
+        msg.includes('cancel') ||
+        msg.includes('closed') ||
+        msg.includes('abort') ||
+        msg.includes('Authentication failed')
+      ) {
+        setError('Authentication was cancelled. Please try again.');
+      } else {
+        setError(msg);
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo & Branding */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-2xl overflow-hidden mb-4 shadow-lg border border-border">
-            <img
-              src="/assets/generated/verifone-logo.dim_256x256.png"
-              alt="Verifone Logo"
-              className="w-full h-full object-cover"
-            />
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3">
+          <img
+            src="/assets/generated/verifone-logo.dim_256x256.png"
+            alt="Verifone"
+            className="h-16 w-16 object-contain shrink-0"
+          />
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">
+              Asset Management
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Verifone Repair &amp; Inventory System
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Verifone Asset Manager</h1>
-          <p className="text-muted-foreground text-sm mt-1">Sign in to your account</p>
         </div>
 
-        <Card className="border border-border shadow-xl">
+        {/* Login Card */}
+        <Card className="border-border shadow-lg">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Welcome back</CardTitle>
-            <CardDescription>Enter your credentials to access the system</CardDescription>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Sign In
+            </CardTitle>
+            <CardDescription>
+              Enter your credentials to access the system. You will be prompted to authenticate securely.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-9"
-                    autoComplete="username"
-                    disabled={isLoading}
-                  />
-                </div>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  disabled={isLoggingIn}
+                  autoComplete="username"
+                  autoFocus
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9"
-                    autoComplete="current-password"
-                    disabled={isLoading}
-                  />
-                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  disabled={isLoggingIn}
+                  autoComplete="current-password"
+                />
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoggingIn || !actor}
+              >
+                {isLoggingIn ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Signing in...
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Authenticating…
                   </>
                 ) : (
                   'Sign In'
                 )}
               </Button>
             </form>
-
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
-              <p className="text-xs text-muted-foreground text-center">
-                Default admin: <span className="font-mono font-medium text-foreground">admin</span> /{' '}
-                <span className="font-mono font-medium text-foreground">admin123</span>
-              </p>
-            </div>
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Built with <span className="text-red-500">♥</span> using{' '}
+        <p className="text-center text-xs text-muted-foreground">
+          Built with{' '}
+          <span className="text-destructive">♥</span>{' '}
+          using{' '}
           <a
-            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+            href={`https://caffeine.ai/?utm_source=Caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname || 'unknown-app')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-foreground transition-colors"

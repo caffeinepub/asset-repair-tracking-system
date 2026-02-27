@@ -1,61 +1,65 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-26T06:42:48.937Z",
-  "summary": "The diff implements the majority of all 7 requirements. Backend has AppUser/ManagedUser model, login, getUsers, createUser, updateUser, deleteUser. Frontend has LoginScreen, AuthContext, Header update, Sidebar admin-gating, SettingsPage with user management, and role-based gating on assets/parts/tickets pages. A few minor gaps exist around route-level redirect enforcement for /settings and the admin-only gating mechanism for backend functions.",
+  "generatedAt": "2026-02-26T19:27:32.474Z",
+  "summary": "The diff implements most of the RBAC requirements but has notable gaps. REQ-1 backend RBAC is partially implemented via AccessControl/MixinAuthorization modules, but the first-principal-as-admin stable state initialization is not clearly visible in the truncated backend. REQ-2 frontend actor usage is updated in useQueries.ts using useActor hook. REQ-3 backend grantAdmin/revokeAdmin functions are not evidenced in the diff, and the SettingsPage shows no grant/revoke UI controls. REQ-4 getCallerRole() is implemented and used in Header and Sidebar. A migration.mo file required by constraints is not present. The diff also contains a password-based login flow that contradicts REQ-1's requirement to remove password-based admin checks.",
   "missing_requirements": [
     {
-      "id": "REQ-2",
-      "requirement": "getUsers(), createUser(), updateUser(), deleteUser() are gated to admin callers only (backend enforcement)",
-      "reason": "The backend main.mo is truncated so it is unclear whether admin-only gating is enforced server-side for those endpoints. The login function returns a session token but there is no visible Principal-based server-side check for admin-only functions in the truncated diff. The frontend parses the token client-side only, which is insufficient for true backend gating.",
+      "id": "REQ-1",
+      "requirement": "Remove or replace any hardcoded principal or password-based admin checks. First principal to register stored as admin in stable state.",
+      "reason": "The diff still contains a password-based login flow in LoginScreen.tsx and AuthContext.tsx (actor.login(username, password)), and ManagedUser still has a passwordHash field in backend/main.mo. The password-based admin check pattern persists. The first-principal-as-admin stable state initialization is not clearly visible in the truncated backend diff.",
       "evidence": [
+        "frontend/src/components/LoginScreen.tsx",
+        "frontend/src/contexts/AuthContext.tsx",
         "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-4",
-      "requirement": "Regular users cannot access /settings directly (redirected away)",
-      "reason": "The SettingsPage uses a React useEffect redirect after render, but there is no route-level beforeLoad guard defined in App.tsx for the /settings route. A direct URL navigation by a regular user would briefly render the page before being redirected, which may not fully satisfy the AC.",
+      "id": "REQ-3",
+      "requirement": "Backend exposes grantAdmin(principal) and revokeAdmin(principal) functions callable only by existing admins. SettingsPage displays role management controls for promoting/demoting users.",
+      "reason": "No grantAdmin or revokeAdmin functions are visible in the backend/main.mo diff. The SettingsPage.tsx diff shows no grant/revoke admin UI controls despite Shield and ShieldOff icons being imported.",
       "evidence": [
-        "frontend/src/App.tsx",
+        "backend/main.mo",
         "frontend/src/pages/SettingsPage.tsx"
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "requirement": "Frontend calls getMyRole() after login to verify the authenticated user's actual role from the backend.",
+      "reason": "AuthContext.tsx does not show a post-login call to verify role from the backend. The login flow still parses role from a token string rather than calling a backend role query after authentication.",
+      "evidence": [
+        "frontend/src/contexts/AuthContext.tsx",
+        "frontend/src/hooks/useQueries.ts"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Client management section added to the SettingsPage (add/rename/delete clients)",
-      "reason": "The build request only asked for a User Management section in the Settings page. The diff adds a full client registry management UI with add, edit, and delete client dialogs inside SettingsPage, which was not requested.",
-      "evidence": [
-        "frontend/src/pages/SettingsPage.tsx"
-      ]
+      "description": "migration.mo file for preserving stable state during backend schema upgrades",
+      "reason": "The build constraints explicitly require generating a migration.mo file, but no such file appears anywhere in the diff.",
+      "evidence": []
     },
     {
-      "description": "backend/migration.mo file added with explicit migration support",
-      "reason": "A migration module was added to the backend and the actor was configured with explicit migration. The build request made no mention of adding a migration module or enabling explicit migration.",
+      "description": "ClientRegistrySection extracted as a new standalone component",
+      "reason": "A new ClientRegistrySection.tsx component was added and not requested in any of the four requirements.",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo"
+        "frontend/src/components/ClientRegistrySection.tsx"
       ]
     }
   ],
   "confidence": 0.72,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
     "frontend-file-summaries.txt",
     "frontend/src/App.tsx",
+    "frontend/src/components/ClientRegistrySection.tsx",
     "frontend/src/components/CreateUserDialog.tsx",
     "frontend/src/components/EditUserDialog.tsx",
     "frontend/src/components/Header.tsx",
-    "frontend/src/components/Layout.tsx",
     "frontend/src/components/LoginScreen.tsx",
     "frontend/src/components/Sidebar.tsx",
     "frontend/src/contexts/AuthContext.tsx",
     "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/AssetsPage.tsx",
-    "frontend/src/pages/PartsInventoryPage.tsx",
-    "frontend/src/pages/RepairTicketsPage.tsx",
     "frontend/src/pages/SettingsPage.tsx",
     "project_state.json"
   ]

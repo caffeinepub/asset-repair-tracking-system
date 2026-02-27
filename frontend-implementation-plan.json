@@ -1,148 +1,88 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Add login authentication, role-based access control, and admin user management",
+  "title": "Fix RBAC: Principal-based admin authorization for user management",
   "requirements": [
     {
-      "id": "REQ-3",
-      "summary": "Replace Internet Identity with username/password login screen and store authenticated user in React context",
+      "id": "REQ-2",
+      "summary": "Update frontend API calls to use authenticated actor for user management operations",
       "acceptanceCriteria": [
-        "Unauthenticated users see only the login screen",
-        "Incorrect credentials show an error message",
-        "Successful login navigates to the dashboard",
-        "Logged-in user info (name, role) is accessible throughout the app"
+        "All user management mutations (create, edit, delete user) in useQueries.ts use the authenticated actor from useActor hook.",
+        "The actor passed to SettingsPage and user management dialogs is the authenticated actor tied to the current Internet Identity session.",
+        "After signing in as admin, submitting the Create User form succeeds without an 'Unauthorized' error.",
+        "The actor is not the anonymous actor when admin-protected backend calls are made."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/contexts/AuthContext.tsx",
-          "operation": "create",
-          "description": "Create an AuthContext and AuthProvider to manage the currently authenticated user state (id, username, role) throughout the app. Expose login, logout, and user state via context. The login function calls the backend login() method with username and password, stores the returned user info on success, and provides error handling for invalid credentials."
-        },
-        {
-          "path": "frontend/src/components/LoginScreen.tsx",
-          "operation": "create",
-          "description": "Create a LoginScreen component displaying the app logo (frontend/public/assets/generated/verifone-logo.dim_256x256.png), username field, password field, and Sign In button. On submit, call the login function from AuthContext. Show error messages for authentication failures. On success, navigate to the dashboard."
-        },
-        {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Wrap the app with AuthProvider from AuthContext. Replace the Internet Identity authentication gate with a check for the authenticated user from AuthContext. If no user is authenticated, render LoginScreen instead of the router. Remove references to InternetIdentityProvider and the profile setup modal."
+          "description": "Review and ensure all user management mutations (useCreateUser, useUpdateUser, useDeleteUser) are correctly using the authenticated actor from useActor. Verify that the actor dependency is properly set up so that these mutations only execute when an authenticated actor is available. Ensure no anonymous actor is used for admin-protected operations."
         },
         {
-          "path": "frontend/src/main.tsx",
+          "path": "frontend/src/pages/SettingsPage.tsx",
           "operation": "modify",
-          "description": "Remove the InternetIdentityProvider wrapper since Internet Identity is no longer used for authentication."
+          "description": "Verify that SettingsPage uses the authenticated actor from useActor hook when calling user management functions. Ensure all user CRUD operations (create, edit, delete) pass through mutations that use the authenticated actor. Add error handling to display authorization errors with clear user feedback if the backend returns 'Unauthorized' responses."
+        },
+        {
+          "path": "frontend/src/components/CreateUserDialog.tsx",
+          "operation": "modify",
+          "description": "Ensure the CreateUserDialog component uses the useCreateUser mutation that depends on the authenticated actor. Verify that the mutation callback correctly handles backend authorization errors and displays them to the user via toast notifications. Confirm the actor is authenticated before allowing form submission."
+        },
+        {
+          "path": "frontend/src/components/EditUserDialog.tsx",
+          "operation": "modify",
+          "description": "Ensure the EditUserDialog component uses the useUpdateUser mutation that depends on the authenticated actor. Verify that the mutation callback correctly handles backend authorization errors and displays them to the user. Confirm the authenticated actor is being used for the update operation."
+        }
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "summary": "Add UI for admins to grant or revoke admin role for other users",
+      "acceptanceCriteria": [
+        "SettingsPage displays role management controls for existing users visible only to admins.",
+        "Granting or revoking admin role is reflected immediately in the user list."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/hooks/useQueries.ts",
+          "operation": "modify",
+          "description": "Add two new mutation hooks: useGrantAdminRole(userPrincipal: Principal) and useRevokeAdminRole(userPrincipal: Principal) that call the corresponding backend functions. Both mutations should use the authenticated actor from useActor. On success, invalidate the 'users' query key to refresh the user list. Use the authorization component's usage instructions as a reference for principal-based operations."
+        },
+        {
+          "path": "frontend/src/pages/SettingsPage.tsx",
+          "operation": "modify",
+          "description": "Add role management UI controls (e.g., Grant Admin / Revoke Admin buttons or dropdowns) next to each user in the user management table. Show these controls only when the current user is an admin (using the role verification from REQ-4). Wire the controls to call the useGrantAdminRole and useRevokeAdminRole mutations. Display toast notifications on success or error. Ensure the user list updates immediately after role changes via query invalidation."
         }
       ]
     },
     {
       "id": "REQ-4",
-      "summary": "Add admin-only Settings page and conditionally render Settings link in Sidebar",
+      "summary": "Display principal-verified admin role and control access to admin-only UI",
       "acceptanceCriteria": [
-        "Settings link appears in the sidebar only for admin users",
-        "Regular users cannot access /settings directly (redirected away)",
-        "Admin users can navigate to the Settings page"
+        "Frontend calls getMyRole() after login to verify the authenticated user's actual role from the backend.",
+        "The admin role badge in the Header reflects the principal-verified role.",
+        "Admin-only navigation items (e.g., Settings in Sidebar) are shown/hidden based on the principal-verified role."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/SettingsPage.tsx",
+          "path": "frontend/src/hooks/useQueries.ts",
           "operation": "modify",
-          "description": "Update the SettingsPage component to add an admin-only route guard at the top of the component. Use the authenticated user from AuthContext to check if the user has the Admin role (ManagedUserRole.Admin). If not admin, redirect to the dashboard and display an access denied message. Retain the existing user management and client management sections."
+          "description": "Add a query hook useGetCallerRole() that calls the backend's getCallerRole() function to retrieve the authenticated user's role based on their Internet Identity principal. Use the authenticated actor from useActor. Enable the query only when an authenticated actor is available. Return the UserRole enum value. This query should be called after login to verify the user's actual backend role."
+        },
+        {
+          "path": "frontend/src/components/Header.tsx",
+          "operation": "modify",
+          "description": "Use the useGetCallerRole query hook to fetch the principal-verified role from the backend. Display the admin role badge only when the backend confirms the user has admin role. Replace any locally stored or session-based role checks with the principal-verified role from the backend query. Show a loading state while the role is being fetched."
         },
         {
           "path": "frontend/src/components/Sidebar.tsx",
           "operation": "modify",
-          "description": "Update the Sidebar component to conditionally render the Settings navigation link only when the authenticated user from AuthContext has the Admin role (ManagedUserRole.Admin). Remove the Internet Identity-based isAdmin check and replace with a check against the AuthContext user role."
+          "description": "Use the useGetCallerRole query hook to determine whether to show the admin-only Settings navigation item. Show the Settings link only when the backend-verified role is 'admin'. Remove any local session-based role checks and rely solely on the principal-verified role from the backend. Handle loading state gracefully to avoid flickering the Settings item."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/contexts/AuthContext.tsx",
           "operation": "modify",
-          "description": "Add route registration for /settings that renders SettingsPage. Ensure the route is protected by checking the authenticated user role in AuthContext."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Build User Management section in Settings page with create, edit, delete user dialogs",
-      "acceptanceCriteria": [
-        "User table lists all users with username and role columns",
-        "Create user dialog validates that username and password are non-empty",
-        "Edit user dialog pre-fills existing username and role",
-        "Delete prompts for confirmation before removing",
-        "Logged-in admin cannot delete their own account"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/CreateUserDialog.tsx",
-          "operation": "create",
-          "description": "Create a dialog component for adding a new user with fields for username, password, and role (Admin or User). Validate that username and password are non-empty before submission. Call the createUser mutation from useQueries. Show success/error toasts and close dialog on success."
-        },
-        {
-          "path": "frontend/src/components/EditUserDialog.tsx",
-          "operation": "create",
-          "description": "Create a dialog component for editing an existing user. Pre-fill the username and role fields from the selected user. Allow updating username, password (optional if blank), and role. Call the updateUser mutation from useQueries. Show success/error toasts and close dialog on success."
-        },
-        {
-          "path": "frontend/src/pages/SettingsPage.tsx",
-          "operation": "modify",
-          "description": "Add a User Management section displaying a table of all users (fetched via getUsers query) with columns for username and role. Include action buttons: Create New User (opens CreateUserDialog), Edit (opens EditUserDialog with selected user), and Delete (shows confirmation prompt). Prevent deletion of the currently logged-in admin user by comparing the user id from AuthContext with the table row user id. Use the existing query hooks from useQueries for fetching, creating, updating, and deleting users."
-        },
-        {
-          "path": "frontend/src/hooks/useQueries.ts",
-          "operation": "modify",
-          "description": "Verify that query hooks for getUsers, createUser, updateUser, and deleteUser are present and correctly configured. If missing, add them using the backend interface methods. Ensure mutations invalidate the 'users' query key on success."
-        }
-      ]
-    },
-    {
-      "id": "REQ-6",
-      "summary": "Enforce role-based access control using the locally stored user role from AuthContext",
-      "acceptanceCriteria": [
-        "Admin-only UI elements are hidden for regular users",
-        "Role gating works based on the username/password login session role",
-        "Regular users can view data but cannot create, edit, or delete records"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AssetsPage.tsx",
-          "operation": "modify",
-          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Show add/edit/delete/import buttons only when the user has the Admin role (ManagedUserRole.Admin)."
-        },
-        {
-          "path": "frontend/src/pages/PartsInventoryPage.tsx",
-          "operation": "modify",
-          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Show add part and adjust stock buttons only when the user has the Admin role (ManagedUserRole.Admin)."
-        },
-        {
-          "path": "frontend/src/pages/RepairTicketsPage.tsx",
-          "operation": "modify",
-          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Show create new ticket and edit buttons only when the user has the Admin role (ManagedUserRole.Admin)."
-        },
-        {
-          "path": "frontend/src/components/RepairTicketDetailModal.tsx",
-          "operation": "modify",
-          "description": "Replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext. Enable editing of diagnosis, outcome, and parts replaced fields only when the user has the Admin role (ManagedUserRole.Admin)."
-        },
-        {
-          "path": "frontend/src/components/AssetDetailModal.tsx",
-          "operation": "modify",
-          "description": "If the modal contains any admin-only actions, replace the Internet Identity-based isAdmin check with a role check using the authenticated user from AuthContext."
-        }
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "summary": "Update Header to display logged-in username and role, and replace logout with session clearing",
-      "acceptanceCriteria": [
-        "Header shows the current user's name and role badge",
-        "Logout button clears session and shows the login screen",
-        "No Internet Identity references remain visible in the UI"
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/components/Header.tsx",
-          "operation": "modify",
-          "description": "Update the Header component to display the authenticated user's username and role badge from AuthContext instead of the Internet Identity user info. Replace the Internet Identity logout button with a logout button that calls the logout function from AuthContext, clears the local session, and returns to the login screen. Remove all references to Internet Identity."
+          "description": "Update the AuthContext to trigger a call to getCallerRole() immediately after successful login, storing the principal-verified role in context state. Provide the backend-verified role via context so components can access it without redundant queries. Clear the role when the user logs out. This ensures the role is always synced with the backend's principal-based authorization."
         }
       ]
     }

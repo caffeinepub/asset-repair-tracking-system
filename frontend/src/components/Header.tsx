@@ -4,30 +4,29 @@ import { Sun, Moon, LogOut, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '../contexts/AuthContext';
-import { ManagedUserRole } from '../backend';
-import { useQueryClient } from '@tanstack/react-query';
+import { useGetCallerRole } from '../hooks/useQueries';
+import { UserRole } from '../backend';
 
 export default function Header() {
-  const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
-  const queryClient = useQueryClient();
+  const { theme, setTheme } = useTheme();
+  const { data: callerRole, isLoading: roleLoading } = useGetCallerRole();
 
-  const handleLogout = () => {
-    logout();
-    queryClient.clear();
+  const isPrincipalAdmin = callerRole === UserRole.admin;
+
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
-    <header className="h-14 border-b border-border bg-background/95 backdrop-blur-sm flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
+    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 shrink-0">
       <div className="flex items-center gap-3">
-        <div className="w-7 h-7 rounded-lg overflow-hidden border border-border">
-          <img
-            src="/assets/generated/verifone-logo.dim_256x256.png"
-            alt="Logo"
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <span className="font-semibold text-sm text-foreground hidden sm:block">
+        <img
+          src="/assets/generated/verifone-logo.dim_256x256.png"
+          alt="Verifone"
+          className="h-8 w-8 object-contain"
+        />
+        <span className="font-bold text-lg tracking-tight text-foreground">
           Verifone Asset Manager
         </span>
       </div>
@@ -35,20 +34,24 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {user && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm">
-              {user.role === ManagedUserRole.Admin ? (
-                <Shield className="w-4 h-4 text-primary" />
-              ) : (
-                <User className="w-4 h-4 text-muted-foreground" />
-              )}
-              <span className="font-medium text-foreground hidden sm:block">{user.username}</span>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span className="font-medium text-foreground">{user.username}</span>
             </div>
-            <Badge
-              variant={user.role === ManagedUserRole.Admin ? 'default' : 'secondary'}
-              className="text-xs hidden sm:flex"
-            >
-              {user.role === ManagedUserRole.Admin ? 'Admin' : 'User'}
-            </Badge>
+            {roleLoading ? (
+              <Badge variant="outline" className="text-xs animate-pulse">
+                Verifying...
+              </Badge>
+            ) : isPrincipalAdmin ? (
+              <Badge className="text-xs bg-primary text-primary-foreground flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Admin
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-xs">
+                {user.role}
+              </Badge>
+            )}
           </div>
         )}
 
@@ -56,22 +59,23 @@ export default function Header() {
           variant="ghost"
           size="icon"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-8 h-8"
+          className="h-9 w-9"
           aria-label="Toggle theme"
         >
-          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleLogout}
-          className="w-8 h-8 text-muted-foreground hover:text-destructive"
-          aria-label="Logout"
-          title="Sign out"
-        >
-          <LogOut className="w-4 h-4" />
-        </Button>
+        {user && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </Button>
+        )}
       </div>
     </header>
   );

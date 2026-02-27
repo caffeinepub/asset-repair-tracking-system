@@ -1,51 +1,38 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "App with login authentication, role-based access control, sidebar navigation, and user management. Admins have full access including a Settings menu to manage users (create/edit/delete with name, password, role). Regular users have limited access with no Settings visibility.",
+  "summary": "Internet Computer app with industry-standard RBAC. First registered user becomes admin, principal-based authentication, admins can create/manage users with role-based access control (RBAC). Fixing authorization error when admin tries to add users.",
   "architectural_notes": [
-    "Authentication is internal credential check (username + password), not a third-party identity service",
-    "Users stored in app backend with name, password, and role fields"
+    "First registered principal is automatically assigned admin role and stored in canister state",
+    "Admin authorization uses principal-based checks (no hardcoded principals)",
+    "Admins can grant/revoke roles for other users"
   ],
-  "known_issues": [],
-  "isFixRequest": false,
+  "known_issues": [
+    "Admin receives 'Unauthorized: Only admins can create users' error when attempting to add users"
+  ],
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-replace-the-internet-identity-authentication-gate-in-the-frontend-with-a-username-password-login-screen-the-login-screen-should-show-the-app-logo-name-a-username-field-a-password-field-and-a-sign-in-button-on-successful-authentication-store-the-logged-in-user-id-username-role-in-react-context-state-accessible-app-wide",
-      "title": "Replace the Internet Identity authentication gate in the frontend with a username/password login screen. The login screen should show the app logo/name, a username field, a password field, and a Sign In button. On successful authentication, store the logged-in user (id, username, role) in React context/state accessible app-wide.",
+      "id": "feature-update-all-frontend-api-calls-in-settingspage-tsx-createuserdialog-tsx-edituserdialog-tsx-and-any-related-hooks-in-usequeries-ts-to-pass-the-authenticated-internet-identity-principal-through-the-actor-when-invoking-user-management-backend-functions-ensure-the-actor-used-for-these-calls-is-the-authenticated-actor-not-anonymous-so-the-backend-receives-the-correct-caller-principal",
+      "title": "Update all frontend API calls in SettingsPage.tsx, CreateUserDialog.tsx, EditUserDialog.tsx, and any related hooks in useQueries.ts to pass the authenticated Internet Identity principal through the actor when invoking user management backend functions. Ensure the actor used for these calls is the authenticated actor (not anonymous) so the backend receives the correct caller principal.",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-a-backend-function-that-allows-the-current-admin-to-grant-admin-role-to-other-registered-principals-and-another-to-revoke-admin-role-expose-these-in-the-frontend-settingspage-under-user-management-so-admins-can-promote-or-demote-users",
+      "title": "Implement a backend function that allows the current admin to grant admin role to other registered principals, and another to revoke admin role. Expose these in the frontend SettingsPage under user management so admins can promote or demote users.",
       "reqIds": [
         "REQ-3"
       ],
       "version": 1
     },
     {
-      "id": "feature-add-a-settings-page-accessible-only-to-admin-users-add-a-settings-navigation-link-in-the-sidebar-that-is-only-rendered-when-the-logged-in-user-has-the-admin-role-regular-users-should-not-see-or-be-able-to-navigate-to-the-settings-page",
-      "title": "Add a Settings page accessible only to admin users. Add a 'Settings' navigation link in the Sidebar that is only rendered when the logged-in user has the Admin role. Regular users should not see or be able to navigate to the Settings page.",
+      "id": "feature-add-a-backend-query-function-that-returns-the-current-caller-s-role-and-admin-status-based-on-their-internet-identity-principal-use-this-in-the-frontend-authcontext-or-header-to-correctly-display-the-admin-role-badge-and-control-access-to-admin-only-ui-sections-without-relying-solely-on-locally-stored-session-data",
+      "title": "Add a backend query function that returns the current caller's role and admin status based on their Internet Identity principal. Use this in the frontend AuthContext or Header to correctly display the admin role badge and control access to admin-only UI sections without relying solely on locally stored session data.",
       "reqIds": [
         "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-build-the-settings-page-with-a-user-management-section-display-a-table-of-all-users-showing-their-username-and-role-provide-buttons-to-1-create-a-new-user-opens-a-dialog-with-username-password-and-role-fields-2-edit-an-existing-user-opens-a-pre-filled-dialog-for-username-password-and-role-3-delete-a-user-with-a-confirmation-prompt-prevent-deletion-of-the-currently-logged-in-admin-user",
-      "title": "Build the Settings page with a User Management section. Display a table of all users showing their username and role. Provide buttons to: (1) Create a new user (opens a dialog with username, password, and role fields), (2) Edit an existing user (opens a pre-filled dialog for username, password, and role), (3) Delete a user (with a confirmation prompt). Prevent deletion of the currently logged-in admin user.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-enforce-role-based-access-control-across-the-app-regular-users-role-user-should-not-see-the-settings-sidebar-link-cannot-access-admin-only-pages-and-all-admin-only-action-buttons-add-edit-delete-on-assetspage-partsinventorypage-repairticketspage-etc-remain-gated-base-access-checks-on-the-locally-stored-logged-in-user-role-instead-of-the-previous-internet-identity-based-role-check",
-      "title": "Enforce role-based access control across the app. Regular users (role: User) should not see the Settings sidebar link, cannot access admin-only pages, and all admin-only action buttons (add/edit/delete) on AssetsPage, PartsInventoryPage, RepairTicketsPage, etc. remain gated. Base access checks on the locally stored logged-in user role instead of the previous Internet Identity-based role check.",
-      "reqIds": [
-        "REQ-6"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-update-the-header-component-to-display-the-logged-in-user-s-username-and-role-and-replace-the-internet-identity-logout-button-with-a-logout-action-that-clears-the-local-session-and-returns-the-user-to-the-login-screen",
-      "title": "Update the Header component to display the logged-in user's username and role, and replace the Internet Identity logout button with a logout action that clears the local session and returns the user to the login screen.",
-      "reqIds": [
-        "REQ-7"
       ],
       "version": 1
     }
@@ -53,41 +40,15 @@
   "new_feature_requests": [
     {
       "id": "AR-1",
-      "summary": "Login screen with username and password authentication",
+      "summary": "RBAC: First registered user becomes admin, principal-based role checks, admin can create/manage users",
       "reqIds": [],
       "status": "pending"
     },
     {
       "id": "AR-2",
-      "summary": "Settings menu in sidebar accessible only to admins",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "User management inside Settings: create, view, edit, delete users with name, password, and role (admin or regular user)",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "Role-based access control: admins get full app access, regular users have limited access with no Settings visibility",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Add an AppUser data model to the backend with fields: id (Nat), username (Text), passwordHash (Text), and role (variant { Admin; User }). Store users in a stable HashMap. Seed one default admin account (username: 'admin', password: 'admin123') on first deploy if no users exist.",
+      "summary": "Implement industry-standard RBAC in the backend: the first principal to register is automatically assigned the admin role and stored in stable state. All subsequent admin authorization checks must compare the caller's Internet Identity principal against the stored admin principal list. Remove or replace any hardcoded principal or password-based admin checks that currently cause the 'Unauthorized: Only admins can create users' error.",
       "reqIds": [
         "REQ-1"
-      ],
-      "status": "pending"
-    },
-    {
-      "id": "AR-6",
-      "summary": "Expose backend functions for user management: login(username, password) returning a session token or error; getUsers() returning all users (admin only); createUser(username, password, role) (admin only); updateUser(id, username, password, role) (admin only); deleteUser(id) (admin only).",
-      "reqIds": [
-        "REQ-2"
       ],
       "status": "pending"
     }
